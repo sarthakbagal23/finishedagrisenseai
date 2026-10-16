@@ -68,6 +68,13 @@ export const CORRELATIONS = [
   { pair: "Rigidity / gene proxy", r: 0.7374 },
 ];
 
+
+export const PERMUTATION_IMPORTANCE = [
+  { feature: "Soil rigidity", root: 0.6789, rootSd: 0.0504, gene: 0.4123, geneSd: 0.0333 },
+  { feature: "Hydrogel concentration", root: 0.5547, rootSd: 0.0462, gene: 0.4812, geneSd: 0.0375 },
+  { feature: "Daily rainfall", root: 0.0740, rootSd: 0.0097, gene: 0.2566, geneSd: 0.0279 },
+];
+
 export const SENSITIVITY = [
   { feature: "Hydrogel concentration", swing: 3.46, p10: 0, p90: 2 },
   { feature: "Soil rigidity", swing: -2.731, p10: 23.06, p90: 56.176 },

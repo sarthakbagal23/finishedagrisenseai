@@ -10,64 +10,46 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Outfit"', 'system-ui', 'sans-serif'],
-        body: ['"Outfit"', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        display: ['"Bricolage Grotesque Variable"', '"Public Sans Variable"', 'system-ui', 'sans-serif'],
+        body: ['"Public Sans Variable"', 'system-ui', '"Noto Sans Devanagari"', '"Noto Sans Gurmukhi"', '"Noto Sans Tamil"', '"Noto Sans Telugu"', '"Noto Sans Kannada"', '"Noto Sans Bengali"', '"Noto Sans Gujarati"', 'sans-serif'],
+        // Numbers use the body face with tabular figures; no monospace labels.
+        mono: ['"Public Sans Variable"', 'system-ui', 'sans-serif'],
       },
       colors: {
-        // Lush dark palette — deep forest meets warm earth
-        background: '#0C0F0A',
-        foreground: '#E8E6E1',
-        card: {
-          DEFAULT: '#141812',
-          foreground: '#E8E6E1',
-        },
-        popover: {
-          DEFAULT: '#141812',
-          foreground: '#E8E6E1',
-        },
-        primary: {
-          DEFAULT: '#6EE7A8',   // Warm mint
-          foreground: '#0C0F0A',
-        },
-        secondary: {
-          DEFAULT: '#1E241A',
-          foreground: '#E8E6E1',
-        },
-        muted: {
-          DEFAULT: '#1A1F16',
-          foreground: '#7C8A72',
-        },
-        accent: {
-          DEFAULT: '#D4A854',   // Warm gold/amber
-          foreground: '#0C0F0A',
-        },
-        destructive: {
-          DEFAULT: '#EF6461',
-          foreground: '#0C0F0A',
-        },
-        sage: '#8BAA7A',
-        amber: '#D4A854',
-        border: '#232A1E',
-        input: '#1A1F16',
-        ring: '#6EE7A8',
-        sidebar: {
-          DEFAULT: '#0E120B',
-          foreground: '#E8E6E1',
-          border: '#1E241A',
-        },
+        background: 'hsl(var(--background) / <alpha-value>)',
+        foreground: 'hsl(var(--foreground) / <alpha-value>)',
+        card: { DEFAULT: 'hsl(var(--card) / <alpha-value>)', foreground: 'hsl(var(--foreground) / <alpha-value>)' },
+        popover: { DEFAULT: 'hsl(var(--card) / <alpha-value>)', foreground: 'hsl(var(--foreground) / <alpha-value>)' },
+        primary: { DEFAULT: 'hsl(var(--primary) / <alpha-value>)', foreground: 'hsl(var(--primary-foreground) / <alpha-value>)' },
+        secondary: { DEFAULT: 'hsl(var(--secondary) / <alpha-value>)', foreground: 'hsl(var(--foreground) / <alpha-value>)' },
+        muted: { DEFAULT: 'hsl(var(--muted) / <alpha-value>)', foreground: 'hsl(var(--muted-foreground) / <alpha-value>)' },
+        accent: { DEFAULT: 'hsl(var(--accent) / <alpha-value>)', foreground: 'hsl(var(--accent-foreground) / <alpha-value>)' },
+        destructive: { DEFAULT: 'hsl(var(--bad) / <alpha-value>)', foreground: 'hsl(var(--primary-foreground) / <alpha-value>)' },
+        // Meaning colours: observed = soil, model = blue, status = good / warn / bad
+        observed: 'hsl(var(--accent) / <alpha-value>)',
+        model: { DEFAULT: 'hsl(var(--model) / <alpha-value>)', ink: 'hsl(var(--model-ink) / <alpha-value>)' },
+        good: 'hsl(var(--good) / <alpha-value>)',
+        warn: 'hsl(var(--warn) / <alpha-value>)',
+        bad: 'hsl(var(--bad) / <alpha-value>)',
+        sage: 'hsl(var(--good) / <alpha-value>)',
+        amber: 'hsl(var(--warn) / <alpha-value>)',
+        border: 'hsl(var(--border) / <alpha-value>)',
+        input: 'hsl(var(--border) / <alpha-value>)',
+        ring: 'hsl(var(--ring) / <alpha-value>)',
+        sidebar: { DEFAULT: 'hsl(var(--sidebar) / <alpha-value>)', foreground: 'hsl(var(--foreground) / <alpha-value>)', border: 'hsl(var(--border) / <alpha-value>)' },
       },
       boxShadow: {
-        'premium': '0 1px 2px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2)',
-        'glow': '0 0 20px rgba(110, 231, 168, 0.15)',
-        'glow-amber': '0 0 20px rgba(212, 168, 84, 0.15)',
-        'card-hover': '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(110,231,168,0.1)',
+        'premium': '0 1px 0 hsl(var(--border))',
+        'glow': '0 0 0 1px hsl(var(--foreground) / 0.12)',
+        'glow-amber': '0 0 0 1px hsl(var(--accent) / 0.3)',
+        'card-hover': '0 0 0 1px hsl(var(--foreground) / 0.18)',
       },
       borderRadius: {
-        lg: '0.75rem',
-        md: '0.5rem',
-        sm: '0.375rem',
+        lg: '0.5rem',
+        md: '0.375rem',
+        sm: '0.25rem',
       },
+      transitionTimingFunction: { calm: 'cubic-bezier(.2,0,0,1)' },
       keyframes: {
         'fade-up': {
           '0%': { opacity: '0', transform: 'translateY(16px)' },

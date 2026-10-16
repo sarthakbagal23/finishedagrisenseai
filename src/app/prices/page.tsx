@@ -1,18 +1,13 @@
 "use client";
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  TrendingUp, TrendingDown, Activity, MapPin, ArrowUpRight, ArrowDownRight,
-  Sparkles, Coins, Sprout
-} from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { FigureCaption } from '@/components/viz/FigureCaption';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { useSensors } from '@/context/SensorContext';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
 
 const priceHistory = [
   { day: 'D1', wheat: 2100, rice: 3800, cotton: 6200, maize: 1900 },
@@ -24,7 +19,7 @@ const priceHistory = [
 ];
 
 const trendingCrops = [
-  { name: 'Cotton (Kapus)', trend: '+6.2%', price: '₹6,800', status: 'booming', icon: '🧶' },
+  { name: 'Cotton (Kapus)', trend: '+6.2%', price: '₹6,800', status: 'booming', icon: '' },
   { name: 'Wheat (Gehu)', trend: '+4.2%', price: '₹2,300', status: 'booming', icon: '🌾' },
   { name: 'Mustard (Sarson)', trend: '+3.5%', price: '₹5,400', status: 'booming', icon: '🌼' },
   { name: 'Rice (Dhan)', trend: '-0.8%', price: '₹3,950', status: 'declining', icon: '🍚' },
@@ -47,196 +42,197 @@ const pricesByState: Record<string, any[]> = {
   ],
 };
 
-const stagger = {
-  container: { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } },
-  item: { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } } },
-} as const;
+// Crop colours follow the entity, fixed order (wheat, cotton, rice, maize: the order that passes the
+// dataviz validator in light mode; dark mode fails its lightness band, so it is not claimed).
+// They are light on a light surface, so every line is also labelled directly and a table view exists.
+const CROPS = [
+  { key: 'wheat', name: 'Wheat', color: '#eda100' },
+  { key: 'cotton', name: 'Cotton', color: '#e87ba4' },
+  { key: 'rice', name: 'Rice', color: '#1baf7a' },
+  { key: 'maize', name: 'Maize', color: '#eb6834' },
+] as const;
+
+const indexed = priceHistory.map(r => {
+  const base = priceHistory[0] as any;
+  const out: any = { day: r.day };
+  CROPS.forEach(c => { out[c.key] = +(((r as any)[c.key] / base[c.key]) * 100).toFixed(1); out[c.key + 'Rs'] = (r as any)[c.key]; });
+  return out;
+});
+
+function Tip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const row = payload[0].payload;
+  return (
+    <div className="rounded-md border border-border bg-card px-3 py-2 text-sm shadow-sm">
+      <p className="text-xs text-muted-foreground mb-1">{label} · sample</p>
+      {CROPS.map(c => (
+        <p key={c.key} className="flex items-center gap-2 num">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ background: c.color }} aria-hidden />
+          <span className="w-14">{c.name}</span>
+          <span className="font-semibold">{row[c.key]}</span>
+          <span className="text-muted-foreground">₹{row[c.key + 'Rs']}</span>
+        </p>
+      ))}
+    </div>
+  );
+}
+
+const trendKind = (s: string) => s === 'booming' ? { Icon: TrendingUp, word: 'Rising', tone: 'text-good' } : s === 'declining' ? { Icon: TrendingDown, word: 'Falling', tone: 'text-bad' } : { Icon: Minus, word: 'Steady', tone: 'text-muted-foreground' };
 
 export default function MarketPrices() {
   const { settings, t } = useSensors();
+  const [table, setTable] = useState(false);
   const state = settings.location.split(', ')[1] || 'Punjab';
   const currentPrices = pricesByState[state] || pricesByState['Punjab'];
-  const boomingCount = trendingCrops.filter(c => c.status === 'booming').length;
-  const decliningCount = trendingCrops.filter(c => c.status === 'declining').length;
+  const rising = trendingCrops.filter(c => c.status === 'booming').length;
+  const falling = trendingCrops.filter(c => c.status === 'declining').length;
+  const last = indexed.length - 1;
 
-  const statusConfig: Record<string, { border: string; badge: string; badgeText: string }> = {
-    booming: { border: 'border-l-sage', badge: 'bg-sage/10 text-sage border-sage/25', badgeText: 'text-sage' },
-    declining: { border: 'border-l-destructive', badge: 'bg-destructive/10 text-destructive border-destructive/25', badgeText: 'text-destructive' },
-    stable: { border: 'border-l-primary', badge: 'bg-primary/10 text-primary border-primary/25', badgeText: 'text-primary' },
-  };
+  const tab = "min-h-11 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-foreground text-muted-foreground font-semibold text-sm";
 
   return (
-    <motion.div
-      className="space-y-6"
-      variants={stagger.container}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Header */}
-      <motion.div variants={stagger.item} className="flex items-center gap-3 px-1">
-        <div className="bg-muted/50 border border-border/50 p-2.5 rounded-xl">
-          <TrendingUp className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h2 className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground">{t('prices_title')}</h2>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">{t('prices_subtitle')}</p>
-        </div>
-      </motion.div>
+    <div className="space-y-8">
+      <header>
+        <h2 className="font-display text-2xl md:text-3xl font-bold">{t('prices_title')}</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          {rising} crops rising and {falling} falling in the sample set. These are example prices, not live mandi rates.
+        </p>
+      </header>
 
-      <motion.div variants={stagger.item}>
-        <Tabs defaultValue="trends" className="w-full">
-          <TabsList className="bg-muted/30 border border-border/50 p-1 mb-6 w-full grid grid-cols-3">
-            <TabsTrigger value="trends" className="text-xs font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-md">🔥 {t('prices_tab_trends')}</TabsTrigger>
-            <TabsTrigger value="prices" className="text-xs font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-md">💰 {t('prices_tab_local')}</TabsTrigger>
-            <TabsTrigger value="profit" className="text-xs font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-md">✨ {t('prices_tab_profit')}</TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="trends" className="w-full">
+        <TabsList className="bg-transparent p-0 h-auto w-full justify-start gap-6 border-b border-border rounded-none">
+          <TabsTrigger value="trends" className={tab}>{t('prices_tab_trends')}</TabsTrigger>
+          <TabsTrigger value="prices" className={tab}>{t('prices_tab_local')}</TabsTrigger>
+          <TabsTrigger value="profit" className={tab}>{t('prices_tab_profit')}</TabsTrigger>
+        </TabsList>
 
-          {/* TAB 1: MARKET TRENDS */}
-          <TabsContent value="trends" className="space-y-6">
-            {/* Summary */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-sage/8 border border-sage/20 p-3 rounded-xl flex flex-col items-center justify-center text-center space-y-1">
-                <span className="font-mono text-2xl font-bold tracking-tight text-sage">{boomingCount}</span>
-                <span className="text-[9px] font-bold text-sage uppercase tracking-[0.15em]">🚀 {t('prices_booming')}</span>
-              </div>
-              <div className="bg-destructive/8 border border-destructive/20 p-3 rounded-xl flex flex-col items-center justify-center text-center space-y-1">
-                <span className="font-mono text-2xl font-bold tracking-tight text-destructive">{decliningCount}</span>
-                <span className="text-[9px] font-bold text-destructive uppercase tracking-[0.15em]">📉 {t('prices_declining')}</span>
-              </div>
+        <TabsContent value="trends" className="space-y-10 mt-8">
+          <section>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <FigureCaption
+                title="Prices since day 1, indexed to 100"
+                source="Sample prices (₹ per quintal), six days."
+                caveat="Indexed so crops with different price levels share one axis."
+              />
+              <button onClick={() => setTable(v => !v)} className="min-h-11 text-sm font-semibold underline underline-offset-4">
+                {table ? 'Show chart' : 'Show table'}
+              </button>
             </div>
+            {!table ? (
+              <>
+                <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm mb-2" aria-label="Legend">
+                  {CROPS.map(c => (
+                    <li key={c.key} className="inline-flex items-center gap-2">
+                      <span className="w-6 h-0.5 rounded" style={{ background: c.color, height: 3 }} aria-hidden />{c.name}
+                    </li>
+                  ))}
+                </ul>
+                <div className="h-[260px] md:h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={indexed} margin={{ top: 8, right: 118, left: 0, bottom: 0 }}>
+                      <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis dataKey="day" tickLine={false} axisLine={{ stroke: 'hsl(var(--border))' }} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                      <YAxis domain={[96, 112]} tickLine={false} axisLine={false} width={36} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                      <Tooltip content={<Tip />} cursor={{ stroke: 'hsl(var(--foreground))', strokeWidth: 1 }} />
+                      {CROPS.map(c => (
+                        <Line key={c.key} type="linear" dataKey={c.key} stroke={c.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+                          dot={false} activeDot={{ r: 5, fill: c.color, stroke: 'hsl(var(--background))', strokeWidth: 2 }}
+                          animationDuration={600} animationEasing="ease-out"
+                          label={(p: any) => p.index === last
+                            ? <text key={c.key} x={p.x + 8} y={p.y} dy={c.key === 'wheat' ? 12 : c.key === 'cotton' ? -2 : 4} fontSize={12} fontWeight={600} fill="hsl(var(--foreground))">{c.name} {p.value}</text>
+                            : <g key={p.index} />} />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm num">
+                  <thead><tr className="border-b border-foreground text-left">
+                    <th className="py-2 font-semibold">Day</th>
+                    {CROPS.map(c => <th key={c.key} className="py-2 text-right font-semibold">{c.name} ₹</th>)}
+                  </tr></thead>
+                  <tbody className="divide-y divide-border">
+                    {priceHistory.map(r => (
+                      <tr key={r.day}><td className="py-2.5">{r.day}</td>{CROPS.map(c => <td key={c.key} className="py-2.5 text-right">{(r as any)[c.key].toLocaleString()}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
 
-            {/* Trending List */}
-            <div className="space-y-3">
-              <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] pl-1">{t('prices_movers')}</h3>
-              {trendingCrops.map((crop, i) => {
-                const cfg = statusConfig[crop.status] || statusConfig.stable;
+          <section>
+            <h3 className="font-display text-lg font-bold border-b border-foreground pb-2">{t('prices_movers')}</h3>
+            <ul className="divide-y divide-border">
+              {trendingCrops.map(crop => {
+                const k = trendKind(crop.status);
                 return (
-                  <Card key={i} className={cn(
-                    "border-l-4 rounded-xl overflow-hidden bg-card/80 border border-border/50 transition-colors hover:border-primary/20",
-                    cfg.border
-                  )}>
-                    <CardContent className="p-3.5 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl bg-muted/30 border border-border/30 p-2 rounded-lg">{crop.icon}</span>
-                        <div>
-                          <h4 className="font-semibold text-sm text-foreground">{crop.name}</h4>
-                          <p className="text-[10px] uppercase font-medium tracking-wider text-muted-foreground mt-0.5">
-                            Current: <span className="text-foreground font-mono ml-0.5">{crop.price}/q</span>
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className={cn("flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-md", cfg.badge)}>
-                        {crop.status === 'booming' ? <TrendingUp className="w-3 h-3" /> :
-                          crop.status === 'declining' ? <TrendingDown className="w-3 h-3" /> :
-                            <Activity className="w-3 h-3" />}
-                        {crop.trend}
-                      </Badge>
-                    </CardContent>
-                  </Card>
+                  <li key={crop.name} className="flex items-center justify-between gap-4 min-h-[56px] py-2">
+                    <div>
+                      <p className="text-[15px] font-semibold">{crop.name}</p>
+                      <p className="text-sm text-muted-foreground num">{crop.price} per quintal</p>
+                    </div>
+                    <span className={cn('inline-flex items-center gap-1.5 text-sm font-semibold num', k.tone)}>
+                      <k.Icon className="w-4 h-4" aria-hidden />{k.word} {crop.trend}
+                    </span>
+                  </li>
                 );
               })}
-            </div>
-          </TabsContent>
+            </ul>
+          </section>
+        </TabsContent>
 
-          {/* TAB 2: LOCAL PRICES */}
-          <TabsContent value="prices" className="space-y-6">
-            <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50 w-fit mx-auto">
-              <MapPin className="w-3.5 h-3.5 text-primary" />
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">{t('prices_mandi_prices')} — {settings.location}</span>
-            </div>
-
-            <Card className="border border-border/50 bg-card/80 rounded-2xl overflow-hidden">
-              <CardHeader className="pb-2 pt-4 px-5">
-                <CardTitle className="text-sm font-semibold text-foreground">{t('prices_chart_title')}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-2 h-[220px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={priceHistory} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(132 10% 22%)" opacity={0.5} />
-                    <XAxis dataKey="day" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: 'hsl(40 12% 60%)' }} dy={10} />
-                    <YAxis fontSize={10} axisLine={false} tickLine={false} domain={[0, 8000]} tick={{ fill: 'hsl(40 12% 60%)' }} dx={-10} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: '10px', border: '1px solid hsl(132 10% 22%)', background: 'hsl(132 16% 14%)', fontSize: '12px', padding: '8px 14px', color: 'hsl(40 25% 92%)' }}
-                      itemStyle={{ fontWeight: 600, color: 'hsl(40 25% 92%)' }}
-                    />
-                    <Line type="monotone" dataKey="wheat" stroke="#D4A843" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: '#D4A843' }} />
-                    <Line type="monotone" dataKey="rice" stroke="#6B8F5E" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: '#6B8F5E' }} />
-                    <Line type="monotone" dataKey="cotton" stroke="#8AACB8" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: '#8AACB8' }} />
-                    <Line type="monotone" dataKey="maize" stroke="#C0622A" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: '#C0622A' }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-2.5">
-              {currentPrices.map((crop: any, i: number) => (
-                <Card key={i} className="border border-border/50 bg-card/80 rounded-xl overflow-hidden hover:border-primary/20 transition-colors">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">{crop.name}</p>
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-0.5">Prev: <span className="font-mono">₹{crop.prev}</span></p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-mono font-bold text-lg tracking-tight text-foreground">₹{crop.current.toLocaleString()}</p>
-                      <p className={cn(
-                        "text-[10px] font-bold flex items-center justify-end gap-1 mt-0.5",
-                        crop.up ? 'text-sage' : 'text-destructive'
-                      )}>
-                        {crop.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                        {crop.trend}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+        <TabsContent value="prices" className="mt-8">
+          <FigureCaption title={`${t('prices_mandi_prices')}: ${settings.location}`} source="Sample prices (₹ per quintal)." caveat="Not a live mandi feed." />
+          <table className="w-full text-sm num">
+            <thead><tr className="border-b border-foreground text-left">
+              <th className="py-2 font-semibold">Crop</th>
+              <th className="py-2 text-right font-semibold">Previous</th>
+              <th className="py-2 text-right font-semibold">Now</th>
+              <th className="py-2 text-right font-semibold">Change</th>
+            </tr></thead>
+            <tbody className="divide-y divide-border">
+              {currentPrices.map((crop: any) => (
+                <tr key={crop.name}>
+                  <td className="py-3 font-semibold">{crop.name}</td>
+                  <td className="py-3 text-right text-muted-foreground">₹{crop.prev.toLocaleString()}</td>
+                  <td className="py-3 text-right font-semibold">₹{crop.current.toLocaleString()}</td>
+                  <td className="py-3 text-right">
+                    <span className={cn('inline-flex items-center gap-1 font-semibold', crop.up ? 'text-good' : 'text-bad')}>
+                      {crop.up ? <TrendingUp className="w-4 h-4" aria-hidden /> : <TrendingDown className="w-4 h-4" aria-hidden />}{crop.trend}
+                    </span>
+                  </td>
+                </tr>
               ))}
-            </div>
-          </TabsContent>
+            </tbody>
+          </table>
+        </TabsContent>
 
-          {/* TAB 3: PROFIT GUIDE */}
-          <TabsContent value="profit" className="space-y-4">
-            <Card className="border border-primary/20 bg-card/80 rounded-2xl">
-              <CardContent className="p-6 text-center space-y-4">
-                <div className="bg-primary/10 border border-primary/20 w-12 h-12 rounded-xl flex items-center justify-center mx-auto">
-                  <Sparkles className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-display font-bold text-base text-foreground">{t('prices_ai_calc')}</h3>
-                  <p className="text-xs text-muted-foreground font-medium mt-1">{t('prices_reco_desc')}</p>
-                </div>
-                <Button className="w-full font-semibold h-10 bg-primary text-primary-foreground rounded-xl shadow-premium">
-                  {t('prices_gen_report')}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-3 pt-2">
-              <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] pl-1">{t('prices_best_opp')}</h3>
-
-              <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Sprout className="w-4 h-4 text-primary" />
-                  <h4 className="font-bold text-sm text-foreground">{t('prices_maize_switch' as any)}</h4>
-                </div>
-                <p className="text-xs text-muted-foreground font-medium leading-relaxed">{t('prices_maize_desc' as any)}</p>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/25 text-[9px] uppercase font-bold tracking-wider">
-                  {t('prices_profit_acre' as any)}
-                </Badge>
+        <TabsContent value="profit" className="mt-8 space-y-8 max-w-2xl">
+          <div>
+            <h3 className="font-display text-lg font-bold">{t('prices_ai_calc')}</h3>
+            <p className="text-sm text-muted-foreground mt-1">{t('prices_reco_desc')}</p>
+            <Button className="mt-4 min-h-11 px-6 font-semibold">{t('prices_gen_report')}</Button>
+          </div>
+          <div>
+            <h3 className="font-display text-lg font-bold border-b border-foreground pb-2">{t('prices_best_opp')}</h3>
+            <div className="divide-y divide-border">
+              <div className="py-4">
+                <h4 className="text-[15px] font-semibold">{t('prices_maize_switch' as any)}</h4>
+                <p className="text-sm text-muted-foreground mt-1">{t('prices_maize_desc' as any)}</p>
+                <p className="text-sm font-semibold mt-2 num">{t('prices_profit_acre' as any)}</p>
               </div>
-
-              <div className="p-4 rounded-xl bg-sage/5 border border-sage/20 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Coins className="w-4 h-4 text-sage" />
-                  <h4 className="font-bold text-sm text-foreground">{t('prices_cotton_hold' as any)}</h4>
-                </div>
-                <p className="text-xs text-muted-foreground font-medium leading-relaxed">{t('prices_cotton_desc' as any)}</p>
-                <Badge variant="outline" className="bg-sage/10 text-sage border-sage/25 text-[9px] uppercase font-bold tracking-wider">
-                  {t('prices_cotton_proj' as any)}
-                </Badge>
+              <div className="py-4">
+                <h4 className="text-[15px] font-semibold">{t('prices_cotton_hold' as any)}</h4>
+                <p className="text-sm text-muted-foreground mt-1">{t('prices_cotton_desc' as any)}</p>
+                <p className="text-sm font-semibold mt-2 num">{t('prices_cotton_proj' as any)}</p>
               </div>
             </div>
-          </TabsContent>
-        </Tabs>
-      </motion.div>
-    </motion.div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

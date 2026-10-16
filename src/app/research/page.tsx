@@ -12,6 +12,7 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 import {
   CORRELATIONS, DATASET_AUDIT, EXTRAPOLATION_STRESS_TEST, INTERVAL_CALIBRATION,
   MODEL_METRICS, OBSERVED_RANGES, RESIDUAL_STANDARD_DEVIATIONS, SENSITIVITY,
@@ -35,7 +36,7 @@ function SectionTitle({ eyebrow, title, description }: { eyebrow: string; title:
 }
 
 function MetricCard({ icon: Icon, label, value, note, tone = "green" }: {
-  icon: typeof Database; label: string; value: string; note: string; tone?: "green" | "amber" | "blue";
+  icon: LucideIcon; label: string; value: string; note: string; tone?: "green" | "amber" | "blue";
 }) {
   const toneClass = tone === "amber" ? "text-accent bg-accent/10 border-accent/20" :
     tone === "blue" ? "text-blue-300 bg-blue-400/10 border-blue-400/20" :

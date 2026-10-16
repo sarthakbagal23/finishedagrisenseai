@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
-  Home, Activity, Brain, LayoutGrid, TrendingUp,
+  Home, Activity, Brain, LayoutGrid, TrendingUp, Microscope,
   ChevronLeft, Leaf, Settings, Cloud, ShieldCheck,
   BookOpen, FileText, Landmark
 } from 'lucide-react';
@@ -39,6 +39,7 @@ export function Navigation() {
   ];
 
   const secondaryNav = [
+    { label: 'Research Lab', icon: Microscope, href: '/research' },
     { label: 'Weather', icon: Cloud, href: '/weather' },
     { label: 'Diagnosis', icon: ShieldCheck, href: '/diagnosis' },
     { label: 'Journal', icon: FileText, href: '/journal' },

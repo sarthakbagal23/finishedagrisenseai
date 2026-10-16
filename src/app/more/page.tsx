@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, Cloud, FileText, Landmark, Settings, ChevronRight, Calendar, Phone, BookOpen, UserCircle, Crown, Plane, LayoutGrid } from 'lucide-react';
+import { ShieldCheck, Cloud, FileText, Landmark, Settings, ChevronRight, Calendar, Phone, BookOpen, UserCircle, Crown, Plane, LayoutGrid, Microscope } from 'lucide-react';
 import Link from 'next/link';
 import { useSensors } from '@/context/SensorContext';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,7 @@ export default function MoreHub() {
   const { t } = useSensors();
 
   const services = [
+    { title: 'Research Lab', desc: 'Drought & root-response simulator', icon: Microscope, href: '/research', iconColor: 'text-primary', bg: 'bg-primary/10 border-primary/20' },
     { title: t('more_subscription'), desc: t('more_sub_subscription'), icon: Crown, href: '/subscription', iconColor: 'text-primary', bg: 'bg-primary/10 border-primary/20' },
     { title: t('settings_title'), desc: t('more_sub_settings'), icon: Settings, href: '/settings', iconColor: 'text-muted-foreground', bg: 'bg-muted/30 border-border/50' },
     { title: t('more_weather'), desc: t('more_sub_weather'), icon: Cloud, href: '/weather', iconColor: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },

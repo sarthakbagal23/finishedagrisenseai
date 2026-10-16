@@ -19,7 +19,7 @@ import {
 } from "@/data/agrisense-research";
 
 type View = "overview" | "scenario" | "validation";
-type Target = "root" | "gene";
+type ResearchTarget = "root" | "gene";
 
 const axisStyle = { fill: "#8c9788", fontSize: 10 };
 const gridStroke = "rgba(142, 160, 137, 0.14)";
@@ -81,7 +81,7 @@ function RangeControl({ label, value, min, max, step, unit, onChange, observedMi
 
 export default function ResearchLabPage() {
   const [view, setView] = useState<View>("overview");
-  const [target, setTarget] = useState<Target>("root");
+  const [target, setTarget] = useState<ResearchTarget>("root");
   const [rigidity, setRigidity] = useState(55);
   const [hydrogel, setHydrogel] = useState(1);
   const [rainfall, setRainfall] = useState(3);

@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import {
   CORRELATIONS, DATASET_AUDIT, EXTRAPOLATION_STRESS_TEST, INTERVAL_CALIBRATION,
-  MODEL_METRICS, OBSERVED_RANGES, RESIDUAL_STANDARD_DEVIATIONS, SENSITIVITY,
+  MODEL_METRICS, OBSERVED_RANGES, PERMUTATION_IMPORTANCE, RESIDUAL_STANDARD_DEVIATIONS, SENSITIVITY,
   predictSyntheticScenario,
 } from "@/data/agrisense-research";
 
@@ -311,6 +311,23 @@ export default function ResearchLabPage() {
             <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">MAE and RMSE use the target's units. Lower values are better. Selection uses mean RMSE from these training folds.</p>
           </div>
         </div>
+      </section>
+
+
+      <section className="rounded-xl border border-border bg-card/80 p-4 md:p-5">
+        <SectionTitle eyebrow="Supplemental analysis" title="Permutation feature importance" description="How much held-out R² changes when a feature is shuffled in the supplemental Random Forest analysis. This is diagnostic association, not causality." />
+        <div className="h-[245px] w-full"><ResponsiveContainer width="100%" height="100%">
+          <BarChart data={PERMUTATION_IMPORTANCE} layout="vertical" margin={{ top: 6, right: 18, bottom: 4, left: 8 }}>
+            <CartesianGrid stroke={gridStroke} horizontal={false} />
+            <XAxis type="number" tick={axisStyle} tickLine={false} axisLine={false} />
+            <YAxis type="category" dataKey="feature" width={145} tick={axisStyle} tickLine={false} axisLine={false} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(value) => [Number(value).toFixed(3), "Mean drop in R² when shuffled"]} />
+            <Legend wrapperStyle={{ fontSize: 11, color: "#9ca89a" }} />
+            <Bar dataKey="root" name="Root elongation" fill="#6EE7A8" radius={[0, 4, 4, 0]} maxBarSize={18} />
+            <Bar dataKey="gene" name="Gene proxy" fill="#D4A854" radius={[0, 4, 4, 0]} maxBarSize={18} />
+          </BarChart>
+        </ResponsiveContainer></div>
+        <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">Source: supplemental permutation_importance.csv; 50 permutations on a held-out partition for Random Forest. These importance scores are not the Phase 3 model-selection metric and should not be read as causal effects.</p>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">

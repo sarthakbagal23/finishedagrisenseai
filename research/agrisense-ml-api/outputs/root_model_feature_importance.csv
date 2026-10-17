@@ -1,0 +1,4 @@
+Target,Selected_Model,Feature,Permutation_Importance_R2_Drop,SD
+Root_Elongation_Rate_mm_day,linear_interactions,Soil_Rigidity_kPa,0.596964,0.059213
+Root_Elongation_Rate_mm_day,linear_interactions,Hydrogel_Concentration_Percent,0.520698,0.042184
+Root_Elongation_Rate_mm_day,linear_interactions,Average_Daily_Rainfall_mm,0.163541,0.018505

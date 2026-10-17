@@ -1,0 +1,33 @@
+Trial_ID,variable,value,lower_fence,upper_fence,review_note
+AS-0047,Soil_Rigidity_kPa,5.00000,5.12375,76.43375,At the generator's 5 kPa lower clipping boundary; expected lower-tail value and within allowed range. Retain.
+AS-0645,Soil_Rigidity_kPa,5.00000,5.12375,76.43375,At the generator's 5 kPa lower clipping boundary; expected lower-tail value and within allowed range. Retain.
+AS-0055,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0152,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0252,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0284,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0313,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0331,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0333,Average_Daily_Rainfall_mm,11.11000,-3.58875,11.10125,"IQR statistical flag but within declared bounds; inspect as a tail value, not an error. Retain unless independent evidence shows a data-entry issue."
+AS-0350,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0371,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0396,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0429,Average_Daily_Rainfall_mm,11.80000,-3.58875,11.10125,"IQR statistical flag but within declared bounds; inspect as a tail value, not an error. Retain unless independent evidence shows a data-entry issue."
+AS-0443,Average_Daily_Rainfall_mm,11.14000,-3.58875,11.10125,"IQR statistical flag but within declared bounds; inspect as a tail value, not an error. Retain unless independent evidence shows a data-entry issue."
+AS-0474,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0538,Average_Daily_Rainfall_mm,11.53000,-3.58875,11.10125,"IQR statistical flag but within declared bounds; inspect as a tail value, not an error. Retain unless independent evidence shows a data-entry issue."
+AS-0607,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0616,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0628,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0675,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0678,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0699,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0706,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0716,Average_Daily_Rainfall_mm,11.47000,-3.58875,11.10125,"IQR statistical flag but within declared bounds; inspect as a tail value, not an error. Retain unless independent evidence shows a data-entry issue."
+AS-0725,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0812,Average_Daily_Rainfall_mm,11.37000,-3.58875,11.10125,"IQR statistical flag but within declared bounds; inspect as a tail value, not an error. Retain unless independent evidence shows a data-entry issue."
+AS-0850,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0906,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0981,Average_Daily_Rainfall_mm,12.00000,-3.58875,11.10125,At the generator's 12 mm/day upper clipping boundary; expected upper-tail value and within allowed range. Retain.
+AS-0991,Average_Daily_Rainfall_mm,11.84000,-3.58875,11.10125,"IQR statistical flag but within declared bounds; inspect as a tail value, not an error. Retain unless independent evidence shows a data-entry issue."
+AS-0155,Root_Elongation_Rate_mm_day,2.84000,3.11500,14.53500,"IQR statistical flag but within declared bounds; inspect as a tail value, not an error. Retain unless independent evidence shows a data-entry issue."
+AS-0304,Stress_Gene_Expression_Fold_Change,4.64700,-0.24162,4.44937,"IQR statistical flag but within declared bounds; inspect as a tail value, not an error. Retain unless independent evidence shows a data-entry issue."

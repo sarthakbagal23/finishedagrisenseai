@@ -1,0 +1,8 @@
+variable_x,variable_y,pearson_r,expected_direction_from_generator,observed_direction,direction_matches,basis,interpretation_limit
+Average_Daily_Rainfall_mm,Soil_Rigidity_kPa,-0.69131,negative,negative,True,less rainfall is encoded to increase rigidity,Synthetic correlation check only; not evidence of real-world effect or causation.
+Soil_Rigidity_kPa,Root_Elongation_Rate_mm_day,-0.75994,negative,negative,True,root-rate formula contains a negative rigidity term,Synthetic correlation check only; not evidence of real-world effect or causation.
+Average_Daily_Rainfall_mm,Root_Elongation_Rate_mm_day,0.63749,positive,positive,True,root-rate formula contains a positive rainfall term,Synthetic correlation check only; not evidence of real-world effect or causation.
+Hydrogel_Concentration_Percent,Root_Elongation_Rate_mm_day,0.58478,positive,positive,True,root-rate formula gives hydrogel a positive main effect and buffering interaction,Synthetic correlation check only; not evidence of real-world effect or causation.
+Soil_Rigidity_kPa,Stress_Gene_Expression_Fold_Change,0.73740,positive,positive,True,proxy formula contains a positive rigidity term,Synthetic correlation check only; not evidence of real-world effect or causation.
+Average_Daily_Rainfall_mm,Stress_Gene_Expression_Fold_Change,-0.63356,negative,negative,True,proxy formula includes a drought-stress term,Synthetic correlation check only; not evidence of real-world effect or causation.
+Hydrogel_Concentration_Percent,Stress_Gene_Expression_Fold_Change,-0.54927,negative,negative,True,proxy formula contains negative hydrogel terms,Synthetic correlation check only; not evidence of real-world effect or causation.

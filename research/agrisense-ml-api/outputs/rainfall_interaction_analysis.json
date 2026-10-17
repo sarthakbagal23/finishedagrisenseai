@@ -1,0 +1,19 @@
+{
+  "purpose": "Descriptive sensitivity check for whether a rigidity-by-rainfall interaction improves fit to the synthetic generated target.",
+  "main_effects_model_in_sample_r2": 0.8718,
+  "with_rigidity_x_rainfall_interaction_in_sample_r2": 0.87213,
+  "interaction_linear_coefficient": 0.001126,
+  "main_effect_model_coefficients": {
+    "Soil_Rigidity_kPa": -0.084492,
+    "Average_Daily_Rainfall_mm": 0.203934,
+    "Hydrogel_Concentration_Percent": 1.71716
+  },
+  "interaction_model_coefficients": {
+    "Soil_Rigidity_kPa": -0.088785,
+    "Average_Daily_Rainfall_mm": 0.166041,
+    "Hydrogel_Concentration_Percent": 1.721047,
+    "Rigidity_x_Rainfall": 0.001126
+  },
+  "intercept_with_interaction": 9.97416,
+  "warning": "This is an exploratory in-sample diagnostic on formula-generated data; it is not evidence of a real biological interaction or causality."
+}

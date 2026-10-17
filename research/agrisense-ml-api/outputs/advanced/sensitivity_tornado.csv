@@ -1,0 +1,4 @@
+feature,p10,p90,root_at_p10,root_at_p90,swing
+Average_Daily_Rainfall_mm,1.099,7.774,8.262,9.649,1.387
+Soil_Rigidity_kPa,23.06,56.176,10.19,7.458,-2.731
+Hydrogel_Concentration_Percent,0.0,2.0,7.155,10.614,3.46

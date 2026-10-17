@@ -1,0 +1,6 @@
+variable,count,mean,median,std,min,q1,q3,max,range
+Hydrogel_Concentration_Percent,1000.0,0.9425,1.0,0.6295,0.0,0.5,1.5,2.0,2.0
+Soil_Rigidity_kPa,1000.0,40.3208,40.875,12.5804,5.0,31.865,49.6925,69.64,64.64
+Average_Daily_Rainfall_mm,1000.0,4.059,3.53,2.7446,0.04,1.92,5.5925,12.0,11.96
+Root_Elongation_Rate_mm_day,1000.0,8.8478,8.805,2.0609,2.84,7.3975,10.2525,14.0,11.16
+Stress_Gene_Expression_Fold_Change,1000.0,2.1139,2.0905,0.7845,0.25,1.5175,2.6902,4.647,4.397

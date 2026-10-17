@@ -1,0 +1,205 @@
+{
+  "root_residual_sd": 0.7341856607593917,
+  "gene_residual_sd": 0.31032585049384276,
+  "dose_response": {
+    "Harsh: 60 kPa, 2 mm/day": {
+      "root_at_0": 4.842093142348986,
+      "root_at_1_5": 7.8176379708446495,
+      "root_at_2": 8.855679417752688,
+      "gain_0_to_1_5": 2.9755448284956634,
+      "best_dose": 2.0
+    },
+    "Moderate: 40 kPa, 4 mm/day": {
+      "root_at_0": 7.348489426403871,
+      "root_at_1_5": 9.881522262866465,
+      "root_at_2": 10.772059712430147,
+      "gain_0_to_1_5": 2.533032836462594,
+      "best_dose": 2.0
+    },
+    "Mild: 25 kPa, 7 mm/day": {
+      "root_at_0": 9.452143314008286,
+      "root_at_1_5": 11.623141482870704,
+      "root_at_2": 12.393000709900992,
+      "gain_0_to_1_5": 2.1709981688624183,
+      "best_dose": 2.0
+    }
+  },
+  "conformal_90": {
+    "half_width_mm_day": 1.2718804401649857,
+    "empirical_coverage": 0.908,
+    "n_test": 250
+  },
+  "extrapolation_threshold_kpa": 47.846000000000004,
+  "VIF": {
+    "Soil_Rigidity_kPa": 1.9492532325062455,
+    "Hydrogel_Concentration_Percent": 1.0180130318557397,
+    "Average_Daily_Rainfall_mm": 1.9273153213491891
+  },
+  "harsh_conditions_effect": {
+    "definition": "rigidity > 50 kPa AND rainfall < 3 mm/day; control = 0% hydrogel, treated = >= 1% hydrogel",
+    "n_control": 37,
+    "n_treated": 98,
+    "mean_control": 5.211351351351352,
+    "mean_treated": 7.89234693877551,
+    "mean_diff": 2.6799050750137896,
+    "ci95": [
+      2.28164582184225,
+      3.0593214285714296
+    ],
+    "cohens_d": 2.4324729435087415
+  },
+  "cv_table": [
+    {
+      "target": "root",
+      "model": "Mean baseline",
+      "R2_mean": -0.0051,
+      "R2_sd": 0.0073,
+      "MAE_mean": 1.6683,
+      "MAE_sd": 0.0646,
+      "RMSE_mean": 2.0605,
+      "RMSE_sd": 0.0698
+    },
+    {
+      "target": "root",
+      "model": "Linear",
+      "R2_mean": 0.8696,
+      "R2_sd": 0.0136,
+      "MAE_mean": 0.5901,
+      "MAE_sd": 0.0274,
+      "RMSE_mean": 0.7403,
+      "RMSE_sd": 0.0293
+    },
+    {
+      "target": "root",
+      "model": "Linear + interactions",
+      "R2_mean": 0.8731,
+      "R2_sd": 0.013,
+      "MAE_mean": 0.5865,
+      "MAE_sd": 0.027,
+      "RMSE_mean": 0.7302,
+      "RMSE_sd": 0.0288
+    },
+    {
+      "target": "root",
+      "model": "Random Forest",
+      "R2_mean": 0.852,
+      "R2_sd": 0.0147,
+      "MAE_mean": 0.6352,
+      "MAE_sd": 0.0294,
+      "RMSE_mean": 0.7888,
+      "RMSE_sd": 0.0311
+    },
+    {
+      "target": "root",
+      "model": "Gradient Boosting",
+      "R2_mean": 0.8633,
+      "R2_sd": 0.0145,
+      "MAE_mean": 0.6063,
+      "MAE_sd": 0.03,
+      "RMSE_mean": 0.7579,
+      "RMSE_sd": 0.0317
+    },
+    {
+      "target": "gene",
+      "model": "Mean baseline",
+      "R2_mean": -0.0063,
+      "R2_sd": 0.0076,
+      "MAE_mean": 0.6481,
+      "MAE_sd": 0.0209,
+      "RMSE_mean": 0.7847,
+      "RMSE_sd": 0.0198
+    },
+    {
+      "target": "gene",
+      "model": "Linear",
+      "R2_mean": 0.8085,
+      "R2_sd": 0.012,
+      "MAE_mean": 0.274,
+      "MAE_sd": 0.0079,
+      "RMSE_mean": 0.3421,
+      "RMSE_sd": 0.0114
+    },
+    {
+      "target": "gene",
+      "model": "Linear + interactions",
+      "R2_mean": 0.8424,
+      "R2_sd": 0.0124,
+      "MAE_mean": 0.2476,
+      "MAE_sd": 0.0089,
+      "RMSE_mean": 0.3102,
+      "RMSE_sd": 0.0114
+    },
+    {
+      "target": "gene",
+      "model": "Random Forest",
+      "R2_mean": 0.8164,
+      "R2_sd": 0.0184,
+      "MAE_mean": 0.2667,
+      "MAE_sd": 0.0118,
+      "RMSE_mean": 0.3346,
+      "RMSE_sd": 0.0153
+    },
+    {
+      "target": "gene",
+      "model": "Gradient Boosting",
+      "R2_mean": 0.8271,
+      "R2_sd": 0.0165,
+      "MAE_mean": 0.2605,
+      "MAE_sd": 0.0126,
+      "RMSE_mean": 0.3248,
+      "RMSE_sd": 0.015
+    }
+  ],
+  "extrapolation": [
+    {
+      "model": "Linear",
+      "R2_extrapolation": 0.7619,
+      "MAE": 0.6028,
+      "bias": 0.0762
+    },
+    {
+      "model": "Linear + interactions",
+      "R2_extrapolation": 0.783,
+      "MAE": 0.5732,
+      "bias": -0.1113
+    },
+    {
+      "model": "Random Forest",
+      "R2_extrapolation": 0.4852,
+      "MAE": 0.8898,
+      "bias": 0.6521
+    },
+    {
+      "model": "Gradient Boosting",
+      "R2_extrapolation": 0.5598,
+      "MAE": 0.8167,
+      "bias": 0.56
+    }
+  ],
+  "sensitivity": [
+    {
+      "feature": "Average_Daily_Rainfall_mm",
+      "p10": 1.099,
+      "p90": 7.774,
+      "root_at_p10": 8.262,
+      "root_at_p90": 9.649,
+      "swing": 1.387
+    },
+    {
+      "feature": "Soil_Rigidity_kPa",
+      "p10": 23.06,
+      "p90": 56.176,
+      "root_at_p10": 10.19,
+      "root_at_p90": 7.458,
+      "swing": -2.731
+    },
+    {
+      "feature": "Hydrogel_Concentration_Percent",
+      "p10": 0.0,
+      "p90": 2.0,
+      "root_at_p10": 7.155,
+      "root_at_p90": 10.614,
+      "swing": 3.46
+    }
+  ]
+}

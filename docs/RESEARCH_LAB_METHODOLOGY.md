@@ -1,5 +1,7 @@
 # Research Lab — methodology and metric provenance
 
+> Source data, code, saved models and all output tables/figures live in [`research/`](../research/README.md), which also records which numbers in this app were checked against them.
+
 ## Purpose
 
 The Research Lab embeds the AgriSense drought-hardening/root-response data-science demo in the existing AgriSense app. It is a research/education surface, not an agricultural decision-support endpoint.

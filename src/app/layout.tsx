@@ -11,7 +11,7 @@ import { StatusStrip } from '@/components/StatusStrip';
 
 export const metadata: Metadata = {
   title: 'AgriSense AI',
-  description: 'Precision agricultural technology for small farmers in India.',
+  description: 'A climate data science project on drought, soil hardening and root growth, with trusted farmer resources for India.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -89,7 +89,7 @@ export default function RootLayout({
 
                 if (reg.active) {
                   const routes = ['/', '/advisor', '/diagnosis', '/sensors', '/prices',
-                    '/weather', '/schemes', '/journal', '/more', '/settings', '/education', '/services', '/subscription', '/research', '/methods'];
+                    '/weather', '/schemes', '/journal', '/more', '/settings', '/education', '/services', '/subscription', '/research', '/methods', '/dataset', '/findings', '/resources', '/field'];
                   const cache = await caches.open('agrisense-v3-static');
                   await Promise.allSettled(
                     routes.map(async route => {

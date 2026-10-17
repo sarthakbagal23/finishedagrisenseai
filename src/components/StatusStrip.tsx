@@ -14,7 +14,9 @@ const KIND = {
 } as const;
 
 const BY_ROUTE: Record<string, [string, Kind][]> = {
-  '/': [['Sensor readings', 'simulated'], ['Weather', 'live']],
+  '/field': [['Sensor readings', 'simulated'], ['Weather', 'live']],
+  '/dataset': [['Dataset', 'synthetic']],
+  '/findings': [['Every figure', 'synthetic']],
   '/sensors': [['Live feed', 'simulated'], ['7-day history', 'sample']],
   '/prices': [['Mandi prices', 'sample']],
   '/research': [['Dataset and models', 'synthetic']],
@@ -37,7 +39,7 @@ export function StatusStrip() {
             </span>
           );
         })}
-        <Link href="/methods" className="ml-auto underline underline-offset-2 text-muted-foreground hover:text-foreground">How data is sourced</Link>
+        <Link href="/methods" className="ml-auto underline underline-offset-2 text-muted-foreground hover:text-foreground">Limitations and sources</Link>
       </div>
     </div>
   );

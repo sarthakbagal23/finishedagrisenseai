@@ -16,15 +16,15 @@ const ROWS: Row[] = [
   { what: "Scenario predictions", where: "Research Lab", status: "Synthetic", how: "Degree-2 interaction model coefficients exported from the training run and evaluated in the browser." },
 ];
 
-export const metadata = { title: "Data & Methods · AgriSense" };
+export const metadata = { title: "Limitations and sources · AgriSense" };
 
 export default function MethodsPage() {
   return (
     <div className="space-y-10 pb-8">
       <header className="max-w-2xl">
-        <h2 className="font-display text-3xl md:text-4xl font-bold">Where every number comes from</h2>
+        <h2 className="font-display text-3xl md:text-4xl font-bold">Limitations and sources</h2>
         <p className="mt-3 text-[15px] text-muted-foreground">
-          AgriSense is a research prototype. This page lists each kind of data in the app and what it actually is, so nothing is mistaken for a field measurement.
+          What our data is, what it cannot prove, and where each claim and link comes from. Everything below the first table is about the research site; the farm-app screens are a prototype and are labelled the same way.
         </p>
       </header>
 
@@ -55,19 +55,44 @@ export default function MethodsPage() {
         </table>
       </div>
 
-      <section className="grid gap-8 md:grid-cols-2 max-w-4xl border-t border-foreground pt-3">
+      <section className="grid gap-8 md:grid-cols-2 max-w-5xl border-t border-foreground pt-3" aria-labelledby="limits">
         <div>
-          <h3 className="font-display text-lg font-bold">Colour in the charts</h3>
-          <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-            <li><span className="inline-block w-2.5 h-2.5 rounded-sm bg-accent mr-2 align-baseline" aria-hidden /><strong className="text-foreground">Soil brown</strong> marks values that were observed or recorded.</li>
-            <li><span className="inline-block w-2.5 h-2.5 rounded-sm bg-model mr-2 align-baseline" aria-hidden /><strong className="text-foreground">Blue</strong> marks values predicted by a model.</li>
-            <li>Green, amber and red appear only for status, always with an icon and a word.</li>
+          <h3 id="limits" className="font-display text-xl font-bold">What the synthetic data cannot prove</h3>
+          <ul className="mt-2 space-y-2 text-[15px] text-muted-foreground list-disc pl-5">
+            <li>The rows come from equations we chose. Patterns in them are by design, so they are not discoveries about plants.</li>
+            <li>Rainfall is a generated scenario, not observed Indian weather.</li>
+            <li>Soil rigidity is not calibrated to a field instrument.</li>
+            <li>The EXPA1-like column is a hypothetical proxy, not measured gene expression.</li>
+            <li>Model scores show how well a model recovers the formulas. They say nothing about prediction on real farms.</li>
+            <li>No result here is a treatment, dose or crop recommendation.</li>
           </ul>
         </div>
         <div>
-          <h3 className="font-display text-lg font-bold">Limits</h3>
-          <p className="mt-2 text-sm text-muted-foreground">Nothing here is a treatment recommendation. Real treatment response, doses and crop-specific advice would need published evidence and controlled field measurements.</p>
+          <h3 className="font-display text-xl font-bold">Colour in the charts</h3>
+          <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+            <li><span className="inline-block w-2.5 h-2.5 rounded-full bg-model mr-2" aria-hidden /><strong className="text-foreground">Blue</strong> marks data that was generated or predicted. Everything in the research figures is blue.</li>
+            <li><span className="inline-block w-2.5 h-2.5 rounded-full bg-accent mr-2" aria-hidden /><strong className="text-foreground">Soil brown</strong> is kept for values that were actually measured. Nothing here is yet.</li>
+            <li>Green, amber and red appear only for status, always with an icon and a word.</li>
+          </ul>
         </div>
+      </section>
+
+      <section className="max-w-3xl border-t border-foreground pt-3" aria-labelledby="sources">
+        <h3 id="sources" className="font-display text-xl font-bold">Sources</h3>
+        <ul className="mt-2 divide-y divide-border text-[15px]">
+          {[
+            ["TSA competition themes and problems", "https://tsaweb.org/competitions/themes-and-problems", "Source of the AI-generated dataset requirement. Read 17 Oct 2026; the page does not state a year."],
+            ["IMD Agromet Advisory Services", "https://mausam.imd.gov.in/responsive/agromet_adv_ser_district_level_wx_forecast.php", "District, state and national bulletins. Read 17 Oct 2026."],
+            ["ICAR: Krishi Vigyan Kendras", "https://icar.org.in/index.php/en/krishi-vigyan-kendras-kvks", "Description of KVKs and their reach. Read 17 Oct 2026."],
+            ["Open-Meteo forecast API", "https://open-meteo.com/", "Live forecast in the Weather screen of the prototype app."],
+          ].map(([t, h, n]) => (
+            <li key={h} className="py-3">
+              <a href={h} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">{t}</a>
+              <p className="text-sm text-muted-foreground mt-0.5">{n}</p>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-sm text-muted-foreground">Dataset provenance: <a href="/data/AI_DATA_GENERATION_LOG.md" className="underline underline-offset-4">generation log</a>, <a href="/data/agrisense_data_dictionary.csv" className="underline underline-offset-4">data dictionary</a>.</p>
       </section>
     </div>
   );

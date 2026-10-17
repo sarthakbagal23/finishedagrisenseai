@@ -1,189 +1,110 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import '@fontsource-variable/bricolage-grotesque/index.css';
+@import '@fontsource-variable/public-sans/index.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ═══════════════════════════════════════════
-   AgriSenseAI — Lush Dark Design System
-   Warm, Premium, Agricultural Intelligence
-   ═══════════════════════════════════════════ */
+/* ───────────────────────────────────────────
+   AgriSense — field-notebook design system
+   Ink for structure. Soil = measured. Blue = predicted.
+   Status colours always travel with an icon and a word.
+   Light and dark are each tuned, not inverted.
+   ─────────────────────────────────────────── */
 
 @layer base {
   :root {
-    --background: 90 18% 4%;
-    --foreground: 40 10% 90%;
-    --card: 100 16% 8%;
-    --card-foreground: 40 10% 90%;
-    --popover: 100 16% 8%;
-    --popover-foreground: 40 10% 90%;
-    --primary: 155 72% 62%;
-    --primary-foreground: 90 18% 4%;
-    --secondary: 95 18% 12%;
-    --secondary-foreground: 40 10% 90%;
-    --muted: 95 18% 10%;
-    --muted-foreground: 95 14% 50%;
-    --accent: 40 62% 52%;
-    --accent-foreground: 90 18% 4%;
-    --destructive: 2 82% 66%;
-    --destructive-foreground: 90 18% 4%;
-    --border: 95 16% 13%;
-    --input: 95 18% 10%;
-    --ring: 155 72% 62%;
-    --radius: 0.75rem;
-    --sidebar: 95 18% 4%;
-    --sidebar-foreground: 40 10% 90%;
-    --sidebar-border: 95 18% 12%;
+    --background: 45 28% 96%;
+    --foreground: 90 14% 12%;
+    --card: 45 35% 99%;
+    --primary: 90 14% 14%;
+    --primary-foreground: 45 28% 96%;
+    --secondary: 45 16% 91%;
+    --muted: 45 16% 92%;
+    --muted-foreground: 90 6% 36%;
+    --accent: 28 48% 34%;          /* soil: observed / measured */
+    --accent-foreground: 45 28% 96%;
+    --model: 214 62% 44%;          /* predicted */
+    --model-ink: 214 62% 36%;
+    --good: 150 58% 26%;
+    --warn: 36 88% 28%;
+    --bad: 6 66% 40%;
+    --border: 45 12% 84%;
+    --ring: 90 14% 14%;
+    --sidebar: 45 22% 94%;
+    --radius: 0.5rem;
+    --ease: cubic-bezier(.2, 0, 0, 1);
+  }
+  .dark {
+    --background: 90 10% 7%;
+    --foreground: 45 16% 92%;
+    --card: 90 9% 10%;
+    --primary: 45 20% 92%;
+    --primary-foreground: 90 10% 7%;
+    --secondary: 90 8% 14%;
+    --muted: 90 8% 13%;
+    --muted-foreground: 45 8% 66%;
+    --accent: 30 50% 64%;
+    --accent-foreground: 90 10% 7%;
+    --model: 213 82% 70%;
+    --model-ink: 213 82% 74%;
+    --good: 150 48% 58%;
+    --warn: 40 88% 62%;
+    --bad: 6 80% 70%;
+    --border: 90 8% 21%;
+    --ring: 45 20% 92%;
+    --sidebar: 90 10% 8%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
+  html { scroll-behavior: smooth; color-scheme: light; }
+  html.dark { color-scheme: dark; }
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'tnum' 1;
   }
-  html {
-    color-scheme: dark;
-    scroll-behavior: smooth;
-  }
+  :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 2px; }
 }
 
-/* ═══════════════════════════════════════════
-   Typography System
-   ═══════════════════════════════════════════ */
-.font-display {
-  font-family: 'Outfit', system-ui, sans-serif;
-  letter-spacing: -0.025em;
-}
-.font-body {
-  font-family: 'Outfit', system-ui, sans-serif;
-}
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
-  font-variant-numeric: tabular-nums;
-}
+.font-display { font-family: 'Bricolage Grotesque Variable', 'Public Sans Variable', system-ui, sans-serif; letter-spacing: -0.02em; }
+.font-body { font-family: 'Public Sans Variable', system-ui, sans-serif; }
+.font-mono { font-family: 'Public Sans Variable', system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+.num { font-variant-numeric: tabular-nums lining-nums; }
 
-/* ═══════════════════════════════════════════
-   Atmospheric Background
-   ═══════════════════════════════════════════ */
-.grain-overlay {
-  position: relative;
-}
-.grain-overlay::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  opacity: 0.03;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
+/* Legacy surface helpers, flattened so unrebuilt pages match the new system */
+.glass-card { @apply bg-card border border-border rounded-lg; }
+.stat-card { @apply bg-card border border-border rounded-lg p-5 relative; }
+.stat-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: hsl(var(--muted-foreground)); }
+.stat-card.stat-green::before { background: hsl(var(--good)); }
+.stat-card.stat-amber::before { background: hsl(var(--warn)); }
+.stat-card.stat-red::before { background: hsl(var(--bad)); }
+.stat-card.stat-blue::before { background: hsl(var(--model)); }
 
-/* Subtle page-level radial glow */
-.page-glow {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(110, 231, 168, 0.04) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 50% at 80% 90%, rgba(212, 168, 84, 0.03) 0%, transparent 70%);
-}
+.status-dot { @apply w-2 h-2 rounded-full shrink-0; }
+.status-dot.optimal { background: hsl(var(--good)); }
+.status-dot.warning { background: hsl(var(--warn)); }
+.status-dot.critical { background: hsl(var(--bad)); }
 
-/* ═══════════════════════════════════════════
-   Card Styles
-   ═══════════════════════════════════════════ */
-.glass-card {
-  @apply bg-card border border-border rounded-xl shadow-premium;
-  backdrop-filter: blur(12px);
-}
-.glass-card:hover {
-  @apply border-primary/20 shadow-card-hover;
-}
+.gold-line { height: 1px; background: hsl(var(--border)); }
 
-/* Stat cards with left accent */
-.stat-card {
-  @apply bg-card border border-border rounded-xl p-5 relative overflow-hidden transition-all duration-300;
-}
-.stat-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  border-radius: 0 4px 4px 0;
-}
-.stat-card.stat-green::before { background: #6EE7A8; }
-.stat-card.stat-amber::before { background: #D4A854; }
-.stat-card.stat-red::before   { background: #EF6461; }
-.stat-card.stat-blue::before  { background: #60A5FA; }
+.skeleton { @apply rounded-md bg-muted; }
+.stagger-children > * { animation: rise 280ms var(--ease) both; }
+.stagger-children > *:nth-child(2) { animation-delay: 40ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 80ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(n+5) { animation-delay: 160ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-.stat-card:hover {
-  @apply -translate-y-0.5 shadow-card-hover border-border/60;
-}
+/* Figures: draw-in for lines, quiet by default */
+.figure-enter { animation: rise 280ms var(--ease) both; }
 
-/* ═══════════════════════════════════════════
-   Status Indicators (Solid Dots)
-   ═══════════════════════════════════════════ */
-.status-dot {
-  @apply w-2 h-2 rounded-full shrink-0;
-}
-.status-dot.optimal  { @apply bg-primary; box-shadow: 0 0 6px rgba(110, 231, 168, 0.5); }
-.status-dot.warning  { @apply bg-accent; box-shadow: 0 0 6px rgba(212, 168, 84, 0.5); }
-.status-dot.critical { @apply bg-destructive; box-shadow: 0 0 6px rgba(239, 100, 97, 0.5); }
-
-/* ═══════════════════════════════════════════
-   Gold accent line
-   ═══════════════════════════════════════════ */
-.gold-line {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212, 168, 84, 0.3), transparent);
-}
-
-/* ═══════════════════════════════════════════
-   Animation Utilities
-   ═══════════════════════════════════════════ */
-.skeleton {
-  @apply rounded-lg;
-  background: linear-gradient(90deg, hsl(var(--muted)), hsl(var(--muted)/0.5), hsl(var(--muted)));
-  background-size: 200% 100%;
-  @apply animate-shimmer;
-}
-
-/* Staggered children entry */
-.stagger-children > * {
-  @apply animate-fade-up;
-}
-.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
-.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
-.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
-.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
-.stagger-children > *:nth-child(7) { animation-delay: 360ms; }
-.stagger-children > *:nth-child(8) { animation-delay: 420ms; }
-
-/* ═══════════════════════════════════════════
-   Scrollbar
-   ═══════════════════════════════════════════ */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
 
-/* ═══════════════════════════════════════════
-   Recharts override
-   ═══════════════════════════════════════════ */
-.recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: hsl(var(--card)) !important;
-  border: 1px solid hsl(var(--border)) !important;
-  border-radius: 0.5rem !important;
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.75rem !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
 }

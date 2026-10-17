@@ -2,17 +2,13 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { AlertTriangle, CheckCircle2, Download, FlaskConical } from "lucide-react";
 import {
-  Activity, AlertTriangle, Beaker, CheckCircle2, ChevronRight, Database,
-  Download, FlaskConical, Info, Microscope, ShieldAlert, SlidersHorizontal,
-  Sprout, Target, TrendingUp,
-} from "lucide-react";
-import {
-  Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, ReferenceLine,
+  Area, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceDot, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
+import { FigureCaption } from "@/components/viz/FigureCaption";
 import {
   CORRELATIONS, DATASET_AUDIT, EXTRAPOLATION_STRESS_TEST, INTERVAL_CALIBRATION,
   MODEL_METRICS, OBSERVED_RANGES, PERMUTATION_IMPORTANCE, RESIDUAL_STANDARD_DEVIATIONS, SENSITIVITY,
@@ -21,74 +17,126 @@ import {
 
 type View = "overview" | "scenario" | "validation";
 type ResearchTarget = "root" | "gene";
+type XVar = "rigidity" | "hydrogel" | "rainfall";
 
-const axisStyle = { fill: "#8c9788", fontSize: 10 };
-const gridStroke = "rgba(142, 160, 137, 0.14)";
-const tooltipStyle = { background: "#11170f", border: "1px solid #293326", borderRadius: 10, color: "#f0f0e9", fontSize: 12 };
-const fmt = (n: number, digits = 2) => n.toFixed(digits);
+const fmt = (n: number, d = 2) => n.toFixed(d);
+const axisTick = { fill: "hsl(var(--muted-foreground))", fontSize: 12 };
 
-function SectionTitle({ eyebrow, title, description }: { eyebrow: string; title: string; description?: string }) {
-  return <div className="mb-4">
-    <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
-    <h3 className="mt-1 font-display text-lg font-bold tracking-tight text-foreground md:text-xl">{title}</h3>
-    {description && <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">{description}</p>}
-  </div>;
+const X_CFG: Record<XVar, { label: string; min: number; max: number; step: number; unit: string }> = {
+  rigidity: { label: "Soil rigidity", min: 5, max: 100, step: 1, unit: "kPa" },
+  hydrogel: { label: "Hydrogel concentration", min: 0, max: 2, step: 0.25, unit: "%" },
+  rainfall: { label: "Average daily rainfall", min: 0, max: 12, step: 0.25, unit: "mm/day" },
+};
+
+function Section({ phase, title, children }: { phase?: string; title: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-foreground pt-3">
+      <h3 className="font-display text-xl font-bold">
+        {phase && <span className="text-muted-foreground font-medium text-base mr-2">{phase}</span>}
+        {title}
+      </h3>
+      <div className="mt-3">{children}</div>
+    </section>
+  );
 }
 
-function MetricCard({ icon: Icon, label, value, note, tone = "green" }: {
-  icon: LucideIcon; label: string; value: string; note: string; tone?: "green" | "amber" | "blue";
-}) {
-  const toneClass = tone === "amber" ? "text-accent bg-accent/10 border-accent/20" :
-    tone === "blue" ? "text-blue-300 bg-blue-400/10 border-blue-400/20" :
-    "text-primary bg-primary/10 border-primary/20";
-  return <div className="rounded-xl border border-border bg-card/80 p-4 md:p-5">
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <p className="mt-2 font-display text-2xl font-bold tracking-tight text-foreground md:text-3xl">{value}</p>
+function RangeControl({ k, value, onChange }: { k: XVar; value: number; onChange: (v: number) => void }) {
+  const c = X_CFG[k];
+  const o = OBSERVED_RANGES[k];
+  const outside = value < o.min || value > o.max;
+  const id = `rc-${k}`;
+  return (
+    <div className="py-4 border-b border-border">
+      <div className="flex items-baseline justify-between gap-3">
+        <label htmlFor={id} className="text-[15px] font-semibold">{c.label}</label>
+        <span className="num font-display text-xl font-bold">{fmt(value, c.step < 1 ? 2 : 0)}<span className="text-sm font-medium text-muted-foreground ml-1">{c.unit}</span></span>
       </div>
-      <div className={cn("rounded-lg border p-2", toneClass)}><Icon className="h-4 w-4" /></div>
+      <input id={id} type="range" min={c.min} max={c.max} step={c.step} value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="mt-3 w-full h-11 cursor-pointer accent-[hsl(var(--model))]" />
+      <div className={cn("flex items-start gap-1.5 text-sm", outside ? "text-warn font-semibold" : "text-muted-foreground")}>
+        {outside ? <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden /> : <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />}
+        <span className="num">{outside ? "Extrapolation: " : "Inside "}training range {o.min}–{o.max} {c.unit}</span>
+      </div>
     </div>
-    <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{note}</p>
-  </div>;
+  );
 }
 
-function RangeControl({ label, value, min, max, step, unit, onChange, observedMin, observedMax }: {
-  label: string; value: number; min: number; max: number; step: number; unit: string;
-  onChange: (value: number) => void; observedMin: number; observedMax: number;
-}) {
-  const outside = value < observedMin || value > observedMax;
-  return <div className="rounded-xl border border-border/70 bg-background/40 p-4">
-    <div className="flex items-center justify-between gap-3">
-      <label className="text-sm font-semibold text-foreground">{label}</label>
-      <span className="rounded-lg border border-border bg-secondary/70 px-2.5 py-1 font-mono text-sm font-bold text-foreground">
-        {fmt(value, step < 1 ? 2 : 0)} <span className="text-[10px] font-medium text-muted-foreground">{unit}</span>
-      </span>
+/** Horizontal bar row made from HTML: value, bar, and the number as text. */
+function BarRow({ label, value, max, text, tone = "ink", note }: { label: string; value: number; max: number; text: string; tone?: "ink" | "model" | "soil" | "warn"; note?: string }) {
+  const bg = tone === "model" ? "bg-model" : tone === "soil" ? "bg-accent" : tone === "warn" ? "bg-warn" : "bg-foreground";
+  return (
+    <div className="py-2.5">
+      <div className="flex items-baseline justify-between gap-3 text-sm">
+        <span className="font-semibold">{label}</span>
+        <span className="num font-semibold">{text}</span>
+      </div>
+      <div className="mt-1.5 h-2 bg-muted rounded-sm"><div className={cn("h-full rounded-sm", bg)} style={{ width: `${Math.min(100, Math.max(0, (value / max) * 100))}%` }} /></div>
+      {note && <p className="text-xs text-muted-foreground mt-1">{note}</p>}
     </div>
-    <input aria-label={label} type="range" min={min} max={max} step={step} value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      className="mt-4 h-2 w-full cursor-pointer appearance-none rounded-full bg-border accent-primary" />
-    <div className="mt-2 flex justify-between font-mono text-[10px] text-muted-foreground">
-      <span>{min} {unit}</span><span>{max} {unit}</span>
+  );
+}
+
+/** Dot plot of mean CV R² with ±SD whiskers. Position carries the value; the table is below. */
+function R2DotPlot({ rows, bestModel }: { rows: typeof MODEL_METRICS; bestModel: string }) {
+  const lo = -0.05, hi = 1;
+  const p = (v: number) => `${((Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * 100}%`;
+  return (
+    <div role="img" aria-label="Mean cross-validated R squared by model with standard deviation whiskers">
+      {rows.map((m) => (
+        <div key={m.model} className="grid grid-cols-[110px_1fr] sm:grid-cols-[170px_1fr] items-center gap-3 py-2.5 border-b border-border last:border-0">
+          <span className="text-sm font-semibold leading-tight">{m.model}</span>
+          <div className="relative h-6">
+            <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
+            {[0, 0.25, 0.5, 0.75, 1].map((t) => <div key={t} className="absolute top-0 bottom-0 w-px bg-border/60" style={{ left: p(t) }} />)}
+            <div className="absolute top-1/2 h-0.5 -translate-y-1/2 bg-foreground/70" style={{ left: p(m.r2 - m.r2Sd), width: `calc(${p(m.r2 + m.r2Sd)} - ${p(m.r2 - m.r2Sd)})` }} />
+            <div className={cn("absolute top-1/2 w-3.5 h-3.5 -ml-[7px] -mt-[7px] rounded-full ring-2 ring-background", m.model === bestModel ? "bg-model" : "bg-foreground")} style={{ left: p(m.r2) }} />
+          </div>
+        </div>
+      ))}
+      <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[170px_1fr] gap-3">
+        <span />
+        <div className="relative h-5 text-xs text-muted-foreground num">
+          {[0, 0.25, 0.5, 0.75, 1].map((t) => <span key={t} className="absolute -translate-x-1/2" style={{ left: p(t) }}>{t}</span>)}
+        </div>
+      </div>
     </div>
-    <div className={cn("mt-3 flex items-start gap-1.5 text-[10px] leading-relaxed", outside ? "text-accent" : "text-muted-foreground")}>
-      {outside ? <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" /> : <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0" />}
-      <span>{outside
-        ? "Outside observed training range (" + observedMin + "–" + observedMax + " " + unit + "); treat as extrapolation."
-        : "Inside observed training range (" + observedMin + "–" + observedMax + " " + unit + ")."}</span>
+  );
+}
+
+function LabTip({ active, payload, unit, xUnit }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="rounded-md border border-border bg-card px-3 py-2 text-sm shadow-sm num">
+      <p className="text-xs text-muted-foreground">{fmt(d.x, 2)} {xUnit}</p>
+      <p className="font-semibold">{fmt(d.root)} {unit}</p>
+      <p className="text-xs text-muted-foreground">90% band {fmt(d.band[0])}–{fmt(d.band[1])}</p>
     </div>
-  </div>;
+  );
 }
 
 export default function ResearchLabPage() {
-  const [view, setView] = useState<View>("overview");
+  const [view, setView] = useState<View>("scenario");
   const [target, setTarget] = useState<ResearchTarget>("root");
+  const [xVar, setXVar] = useState<XVar>("rigidity");
   const [rigidity, setRigidity] = useState(55);
   const [hydrogel, setHydrogel] = useState(1);
   const [rainfall, setRainfall] = useState(3);
   const [showBaseline, setShowBaseline] = useState(true);
 
-  const prediction = useMemo(() => predictSyntheticScenario({ rigidity, hydrogel, rainfall }), [rigidity, hydrogel, rainfall]);
+  const scenario = { rigidity, hydrogel, rainfall };
+  const prediction = useMemo(() => predictSyntheticScenario(scenario), [rigidity, hydrogel, rainfall]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hw = INTERVAL_CALIBRATION.halfWidth;
+  const curve = useMemo(() => {
+    const c = X_CFG[xVar];
+    const n = 60;
+    return Array.from({ length: n + 1 }, (_, i) => {
+      const x = c.min + ((c.max - c.min) * i) / n;
+      const root = predictSyntheticScenario({ rigidity, hydrogel, rainfall, [xVar]: x }).root;
+      return { x, root, band: [Math.max(0, root - hw), root + hw] as [number, number] };
+    });
+  }, [xVar, rigidity, hydrogel, rainfall, hw]);
   const doseResponse = useMemo(() => Array.from({ length: 9 }, (_, i) => {
     const dose = i * 0.25;
     return {
@@ -98,10 +146,14 @@ export default function ResearchLabPage() {
       mild: predictSyntheticScenario({ rigidity: 25, hydrogel: dose, rainfall: 7 }).root,
     };
   }), []);
+
   const currentMetrics = MODEL_METRICS.filter((m) => m.target === target);
   const visibleMetrics = showBaseline ? currentMetrics : currentMetrics.filter((m) => m.model !== "Mean baseline");
-  const selectedMetric = currentMetrics.reduce((best, m) => m.rmse < best.rmse ? m : best, currentMetrics[0]);
+  const selectedMetric = currentMetrics.reduce((best, m) => (m.rmse < best.rmse ? m : best), currentMetrics[0]);
   const targetLabel = target === "root" ? "Root elongation rate" : "EXPA1-like proxy";
+  const xc = X_CFG[xVar];
+  const xObs = OBSERVED_RANGES[xVar];
+  const xValue = scenario[xVar];
 
   const downloadMetrics = () => {
     const rows = [
@@ -120,257 +172,311 @@ export default function ResearchLabPage() {
     URL.revokeObjectURL(url);
   };
 
-  return <div className="space-y-7 pb-8">
-    <header className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-5 md:p-8">
-      <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-16 left-1/3 h-40 w-40 rounded-full bg-accent/10 blur-3xl" />
-      <div className="relative z-10">
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary"><FlaskConical className="h-3 w-3" /> Research sandbox</span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-accent"><ShieldAlert className="h-3 w-3" /> Synthetic data</span>
-        </div>
-        <h2 className="max-w-3xl font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl">From soil stress to root response.</h2>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
-          Explore the AgriSense drought-hardening research scenario: soil rigidity, hydrogel concentration, and rainfall versus simulated root elongation and an EXPA1-like response proxy. This research layer is part of the existing AgriSense app; the farm dashboard remains intact.
+  const tabs: [View, string][] = [["scenario", "Scenario lab"], ["overview", "Data and relationships"], ["validation", "Model validation"]];
+
+  return (
+    <div className="space-y-10 pb-8">
+      <header>
+        <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-model-ink"><FlaskConical className="w-4 h-4" aria-hidden /> Research Lab · synthetic data</p>
+        <h2 className="font-display text-3xl md:text-4xl font-bold mt-2 max-w-3xl text-balance">From soil stress to root response.</h2>
+        <p className="mt-3 max-w-2xl text-[15px] text-muted-foreground">
+          Drought-hardening scenario: soil rigidity, hydrogel concentration and rainfall against simulated root elongation and an EXPA1-like response proxy.
         </p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <button onClick={() => setView("scenario")} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:opacity-90">Open scenario lab <ChevronRight className="h-4 w-4" /></button>
-          <button onClick={() => setView("validation")} className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/60 px-4 py-2.5 text-sm font-semibold text-foreground transition hover:border-primary/30">Model validation <Activity className="h-4 w-4" /></button>
-        </div>
-        <div className="mt-5 flex items-start gap-2 rounded-xl border border-accent/20 bg-accent/5 p-3 text-xs leading-relaxed text-muted-foreground">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-          <p><strong className="text-foreground">Important:</strong> all 1,000 rows are formula-generated synthetic data. The proxy is not measured EXPA1 expression, and model scores do not establish real biological effects or provide farm treatment advice.</p>
-        </div>
-      </div>
-    </header>
+        <p className="mt-4 max-w-2xl border-l-2 border-warn pl-3 text-sm">
+          <strong>All 1,000 rows are formula-generated.</strong> The proxy is not measured EXPA1 expression, and model scores do not establish real biological effects or farm treatment advice.
+        </p>
+      </header>
 
-    <nav aria-label="Research sections" className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card/70 p-1">
-      {([
-        ["overview", "Overview", Activity],
-        ["scenario", "Scenario lab", SlidersHorizontal],
-        ["validation", "Model validation", Target],
-      ] as const).map(([key, label, Icon]) => <button key={key} onClick={() => setView(key)}
-        className={cn("flex items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-xs font-semibold transition md:gap-2 md:text-sm",
-          view === key ? "bg-primary/10 text-primary shadow-sm" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground")}>
-        <Icon className="h-4 w-4" />{label}
-      </button>)}
-    </nav>
+      <nav aria-label="Research sections" className="flex gap-6 border-b border-border overflow-x-auto">
+        {tabs.map(([key, label]) => (
+          <button key={key} onClick={() => setView(key)} aria-current={view === key ? "page" : undefined}
+            className={cn("min-h-11 whitespace-nowrap border-b-2 text-sm font-semibold transition-colors duration-100", view === key ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
+            {label}
+          </button>
+        ))}
+      </nav>
 
-    {view === "overview" && <div className="space-y-7">
-      <section>
-        <SectionTitle eyebrow="Phase 1 · Data quality" title="A clean starting dataset" description="Quality-control checks from the generated source file. Statistical outlier flags are retained for review, not automatically deleted." />
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <MetricCard icon={Database} label="Synthetic rows" value={DATASET_AUDIT.rowsCleaned.toLocaleString()} note="Original and cleaned files have the same row count." />
-          <MetricCard icon={CheckCircle2} label="Missing values" value={String(DATASET_AUDIT.missingValues)} note="Across six required dataset columns." tone="blue" />
-          <MetricCard icon={ShieldAlert} label="Rows removed" value={String(DATASET_AUDIT.rowsRemoved)} note="No integrity-rule row removals were required." tone="amber" />
-          <MetricCard icon={AlertTriangle} label="IQR flag entries" value={String(DATASET_AUDIT.featureLevelOutlierFlags)} note="Flags across features; some may refer to the same row." tone="amber" />
-        </div>
-      </section>
+      {view === "scenario" && (
+        <div className="space-y-10">
+          <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,340px)_1fr]">
+            <div>
+              <h3 className="font-display text-lg font-bold border-b border-foreground pb-2">Soil-stress scenario</h3>
+              <RangeControl k="rigidity" value={rigidity} onChange={setRigidity} />
+              <RangeControl k="hydrogel" value={hydrogel} onChange={setHydrogel} />
+              <RangeControl k="rainfall" value={rainfall} onChange={setRainfall} />
+              <div className="flex flex-wrap gap-2 pt-4">
+                {[
+                  ["Harsh", 60, 0, 2], ["Moderate", 40, 1, 4], ["Mild", 25, 1.5, 7],
+                ].map(([l, r, h, f]) => (
+                  <button key={l as string} onClick={() => { setRigidity(r as number); setHydrogel(h as number); setRainfall(f as number); }}
+                    className="min-h-11 px-3 border border-border rounded-md text-sm font-semibold hover:border-foreground transition-colors duration-100">{l} reference</button>
+                ))}
+                <button onClick={() => { setRigidity(55); setHydrogel(1); setRainfall(3); }} className="min-h-11 px-3 text-sm font-semibold underline underline-offset-4">Reset</button>
+              </div>
+            </div>
 
-      <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        <div className="rounded-xl border border-border bg-card/80 p-4 md:p-5">
-          <SectionTitle eyebrow="Phase 2 · Relationships" title="What the synthetic data encodes" description="Pearson correlations describe association within the generated rows; they are not causal estimates." />
-          <div className="h-[270px] w-full"><ResponsiveContainer width="100%" height="100%">
-            <BarChart data={CORRELATIONS} layout="vertical" margin={{ top: 4, right: 18, bottom: 2, left: 4 }}>
-              <CartesianGrid stroke={gridStroke} horizontal={false} />
-              <XAxis type="number" domain={[-1, 1]} tick={axisStyle} tickLine={false} axisLine={false} />
-              <YAxis type="category" dataKey="pair" width={152} tick={axisStyle} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(value) => [Number(value).toFixed(3), "Pearson r"]} />
-              <ReferenceLine x={0} stroke="#899184" strokeDasharray="3 3" />
-              <Bar dataKey="r" name="Pearson r" radius={[0, 5, 5, 0]} maxBarSize={21}>
-                {CORRELATIONS.map((d) => <Cell key={d.pair} fill={d.r < 0 ? "#D4A854" : "#6EE7A8"} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer></div>
-          <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">Source: correlation_matrix.csv. Rainfall and rigidity are correlated in the generated scenario, so their associations should not be interpreted as independent causal effects.</p>
-        </div>
+            <div className="min-w-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                <div>
+                  <p className="inline-flex items-center gap-2 text-sm text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-model" aria-hidden />Predicted root elongation</p>
+                  <p className="font-display text-5xl font-bold num leading-none mt-1">{fmt(prediction.root)}<span className="text-base font-medium text-muted-foreground ml-1.5">mm/day</span></p>
+                  <p className="text-xs text-muted-foreground mt-1 num">Raw model {fmt(prediction.rootRaw, 3)}{prediction.rootWasBounded && ", constrained to the generated target range for display"}</p>
+                </div>
+                <div>
+                  <p className="inline-flex items-center gap-2 text-sm text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-model" aria-hidden />EXPA1-like response proxy</p>
+                  <p className="font-display text-5xl font-bold num leading-none mt-1">{fmt(prediction.geneProxy, 3)}</p>
+                  <p className="text-xs text-muted-foreground mt-1 num">Simulated fold-change units · raw {fmt(prediction.geneRaw, 4)} · band <strong className="text-foreground">{prediction.warningBand}</strong>{prediction.geneWasBounded && " · constrained for display"}</p>
+                </div>
+              </div>
 
-        <div className="rounded-xl border border-border bg-card/80 p-4 md:p-5">
-          <SectionTitle eyebrow="Phase 3 · Model selection" title="Cross-validation snapshot" description="Selection used mean RMSE on repeated folds of the training partition." />
-          <div className="space-y-3">
-            {[
-              { label: "Root elongation", r2: 0.87284, rmse: 0.728719, color: "bg-primary" },
-              { label: "Gene-response proxy", r2: 0.836892, rmse: 0.316421, color: "bg-accent" },
-            ].map((m) => <div key={m.label} className="rounded-xl border border-border/70 bg-background/40 p-3.5">
-              <div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold text-foreground">{m.label}</p><span className="font-mono text-lg font-bold text-foreground">{m.r2.toFixed(3)}</span></div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-border"><div className={cn("h-full rounded-full", m.color)} style={{ width: (m.r2 * 100) + "%" }} /></div>
-              <p className="mt-2 text-[11px] text-muted-foreground">CV RMSE: <strong className="font-mono text-foreground">{m.rmse.toFixed(3)}</strong> · lower is better</p>
-            </div>)}
-          </div>
-          <button onClick={() => setView("validation")} className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">Explore all model scores <TrendingUp className="h-3.5 w-3.5" /></button>
-        </div>
-      </section>
+              <div className={cn("mt-5 flex items-start gap-2 text-sm", prediction.inObservedTrainingRange ? "text-good" : "text-warn")} role="status">
+                {prediction.inObservedTrainingRange ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" aria-hidden /> : <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />}
+                <p className="text-foreground">
+                  <strong>{prediction.inObservedTrainingRange ? "Inside observed feature ranges." : "Extrapolation warning."}</strong>{" "}
+                  {prediction.inObservedTrainingRange
+                    ? "Not evidence the scenario is biologically validated."
+                    : `Outside observed range for: ${prediction.outOfRangeFeatures.join(", ")}. The model may be unreliable even if the slider allows it.`}
+                </p>
+              </div>
 
-      <section>
-        <SectionTitle eyebrow="Phase 4 · Advanced analysis" title="Dose-response scenarios" description="Fitted synthetic response curves for three illustrative soil conditions. These curves inherit the assumptions in the dataset generator." />
-        <div className="rounded-xl border border-border bg-card/80 p-4 md:p-5">
-          <div className="h-[285px] w-full"><ResponsiveContainer width="100%" height="100%">
-            <LineChart data={doseResponse} margin={{ top: 6, right: 12, bottom: 10, left: 0 }}>
-              <CartesianGrid stroke={gridStroke} strokeDasharray="3 3" />
-              <XAxis dataKey="dose" tick={axisStyle} tickLine={false} axisLine={false} tickFormatter={(v) => String(v) + "%"} />
-              <YAxis tick={axisStyle} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
-              <Tooltip contentStyle={tooltipStyle} labelFormatter={(v) => "Hydrogel: " + String(v) + "%"} formatter={(v) => [Number(v).toFixed(2) + " mm/day", "Predicted root rate"]} />
-              <Legend wrapperStyle={{ fontSize: 11, color: "#9ca89a" }} />
-              <Line type="monotone" dataKey="harsh" name="High rigidity · low rain" stroke="#EF6461" strokeWidth={2.2} dot={false} />
-              <Line type="monotone" dataKey="moderate" name="Moderate conditions" stroke="#D4A854" strokeWidth={2.2} dot={false} />
-              <Line type="monotone" dataKey="mild" name="Lower rigidity · more rain" stroke="#6EE7A8" strokeWidth={2.2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer></div>
-          <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">Scenario definitions: 60 kPa / 2 mm per day; 40 kPa / 4 mm per day; 25 kPa / 7 mm per day. Outputs use the saved degree-2 interaction model and are bounded to the synthetic target range.</p>
-          <button onClick={() => setView("scenario")} className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">Try your own scenario <ChevronRight className="h-3.5 w-3.5" /></button>
-        </div>
-      </section>
-
-      <section className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card/70 p-4"><div className="mb-2 flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /><h3 className="text-sm font-bold text-foreground">What this can demonstrate</h3></div><p className="text-xs leading-relaxed text-muted-foreground">A reproducible dataset audit, summary statistics, model-family comparison, and a functional inference experience embedded in the actual app.</p></div>
-        <div className="rounded-xl border border-accent/20 bg-accent/5 p-4"><div className="mb-2 flex items-center gap-2"><Microscope className="h-4 w-4 text-accent" /><h3 className="text-sm font-bold text-foreground">What still needs evidence</h3></div><p className="text-xs leading-relaxed text-muted-foreground">Real treatment response, optimal dose, crop-specific recommendations, and EXPA1 transcriptomic response require published evidence and ideally controlled measurements.</p></div>
-      </section>
-    </div>}
-
-    {view === "scenario" && <div className="space-y-5">
-      <section>
-        <SectionTitle eyebrow="Interactive simulator" title="Build a soil-stress scenario" description="Changing any input recalculates predictions in the browser from the exported interaction-model coefficients. It does not require a separately hosted Python API." />
-        <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-          <div className="space-y-3 rounded-xl border border-border bg-card/80 p-4 md:p-5">
-            <RangeControl label="Soil rigidity" value={rigidity} min={5} max={100} step={1} unit="kPa" onChange={setRigidity} observedMin={OBSERVED_RANGES.rigidity.min} observedMax={OBSERVED_RANGES.rigidity.max} />
-            <RangeControl label="Hydrogel concentration" value={hydrogel} min={0} max={2} step={0.25} unit="%" onChange={setHydrogel} observedMin={OBSERVED_RANGES.hydrogel.min} observedMax={OBSERVED_RANGES.hydrogel.max} />
-            <RangeControl label="Average daily rainfall" value={rainfall} min={0} max={12} step={0.25} unit="mm/day" onChange={setRainfall} observedMin={OBSERVED_RANGES.rainfall.min} observedMax={OBSERVED_RANGES.rainfall.max} />
-            <div className="flex flex-wrap gap-2 pt-1">
-              <button onClick={() => { setRigidity(60); setHydrogel(0); setRainfall(2); }} className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:border-primary/30 hover:text-foreground">Harsh reference</button>
-              <button onClick={() => { setRigidity(40); setHydrogel(1); setRainfall(4); }} className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:border-primary/30 hover:text-foreground">Moderate reference</button>
-              <button onClick={() => { setRigidity(25); setHydrogel(1.5); setRainfall(7); }} className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:border-primary/30 hover:text-foreground">Mild reference</button>
-              <button onClick={() => { setRigidity(55); setHydrogel(1); setRainfall(3); }} className="ml-auto rounded-lg bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition hover:bg-primary/15">Reset</button>
+              <figure className="mt-8">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <FigureCaption
+                    title={`Root elongation as ${xc.label.toLowerCase()} changes`}
+                    source="Degree-2 interaction model on synthetic data; other inputs held at the sliders."
+                    caveat={`Band is a 90% interval (±${fmt(hw)} mm/day; ${(INTERVAL_CALIBRATION.empiricalCoverage * 100).toFixed(1)}% empirical coverage on ${INTERVAL_CALIBRATION.testRows} synthetic test rows).`}
+                  />
+                  <div role="group" aria-label="Horizontal axis" className="inline-flex border border-foreground rounded-md overflow-hidden text-sm font-semibold">
+                    {(Object.keys(X_CFG) as XVar[]).map((k) => (
+                      <button key={k} onClick={() => setXVar(k)} aria-pressed={xVar === k}
+                        className={cn("min-h-11 px-3 capitalize transition-colors duration-100", xVar === k ? "bg-foreground text-background" : "hover:bg-muted")}>{k}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="h-[280px] md:h-[340px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={curve} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+                      <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis type="number" dataKey="x" domain={[xc.min, xc.max]} tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} tick={axisTick}
+                        label={{ value: `${xc.label} (${xc.unit})`, position: "insideBottom", offset: -4, fill: "hsl(var(--muted-foreground))", fontSize: 12 }} height={44} />
+                      <YAxis domain={[0, 14]} ticks={[0, 2, 4, 6, 8, 10, 12, 14]} tickLine={false} axisLine={false} width={36} tick={axisTick} />
+                      {xObs.max < xc.max && (
+                        <ReferenceArea x1={xObs.max} x2={xc.max} fill="hsl(var(--muted-foreground))" fillOpacity={0.14} stroke="none"
+                          label={{ value: "Outside training data", position: "insideTop", fill: "hsl(var(--foreground))", fontSize: 12, fontWeight: 600 }} />
+                      )}
+                      <Tooltip content={<LabTip unit="mm/day" xUnit={xc.unit} />} cursor={{ stroke: "hsl(var(--foreground))", strokeWidth: 1 }} />
+                      <Area type="linear" dataKey="band" stroke="none" fill="hsl(var(--model))" fillOpacity={0.18} isAnimationActive={false} />
+                      <Line type="linear" dataKey="root" stroke="hsl(var(--model))" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" dot={false} animationDuration={280} animationEasing="ease-out" />
+                      <ReferenceLine x={xValue} stroke="hsl(var(--foreground))" strokeDasharray="3 3" />
+                      <ReferenceDot x={xValue} y={prediction.root} r={6} fill="hsl(var(--model))" stroke="hsl(var(--background))" strokeWidth={2} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Solid line: model prediction. Shaded ribbon: 90% interval. Dot: your current scenario. Grey region: values the model never saw during fitting.</p>
+              </figure>
             </div>
           </div>
-          <div className="space-y-3">
-            <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-card p-4 md:p-5">
-              <div className="flex items-center gap-2 text-primary"><Sprout className="h-4 w-4" /><span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em]">Predicted root elongation</span></div>
-              <div className="mt-3 flex items-baseline gap-2"><span className="font-display text-4xl font-bold tracking-tight text-foreground md:text-5xl">{fmt(prediction.root)}</span><span className="text-sm font-medium text-muted-foreground">mm/day</span></div>
-              <p className="mt-2 text-xs text-muted-foreground">Raw model: {fmt(prediction.rootRaw, 3)} mm/day</p>
-              {prediction.rootWasBounded && <p className="mt-2 text-xs text-accent">Output constrained to generated target range for display.</p>}
+
+          <Section title="How to read this">
+            <ol className="grid gap-6 md:grid-cols-3 text-sm">
+              {[
+                ["1", "Change one factor", "Compare one variable at a time to see how the synthetic model responds."],
+                ["2", "Watch the grey region", "A value can be inside the slider limits but outside the data used to fit the model."],
+                ["3", "Do not infer causality", "The targets are generated by code; the model learns programmed patterns, not a proven treatment effect."],
+              ].map(([n, t, b]) => <li key={n}><p className="font-semibold"><span className="num text-muted-foreground mr-2">{n}</span>{t}</p><p className="text-muted-foreground mt-1">{b}</p></li>)}
+            </ol>
+          </Section>
+        </div>
+      )}
+
+      {view === "overview" && (
+        <div className="space-y-12">
+          <Section phase="Phase 1" title="A clean starting dataset">
+            <p className="text-sm text-muted-foreground max-w-2xl">Quality-control checks from the generated source file. Outlier flags are kept for review, not deleted.</p>
+            <dl className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-5">
+              {[
+                ["Synthetic rows", DATASET_AUDIT.rowsCleaned.toLocaleString(), "Original and cleaned files match."],
+                ["Missing values", String(DATASET_AUDIT.missingValues), "Across six required columns."],
+                ["Rows removed", String(DATASET_AUDIT.rowsRemoved), "No integrity-rule removals needed."],
+                ["IQR flag entries", String(DATASET_AUDIT.featureLevelOutlierFlags), "Across features; some may share a row."],
+              ].map(([l, v, n]) => (
+                <div key={l}>
+                  <dt className="text-sm text-muted-foreground">{l}</dt>
+                  <dd className="font-display text-3xl font-bold num">{v}</dd>
+                  <dd className="text-xs text-muted-foreground mt-0.5">{n}</dd>
+                </div>
+              ))}
+            </dl>
+          </Section>
+
+          <Section phase="Phase 2" title="What the synthetic data encodes">
+            <FigureCaption title="Pearson correlation between pairs" source="Source: correlation_matrix.csv, 1,000 synthetic rows." caveat="Association only. Rainfall and rigidity are correlated in the generator, so these are not independent causal effects." />
+            <div role="img" aria-label="Pearson correlations, bars extend left for negative and right for positive">
+              {CORRELATIONS.map((c) => (
+                <div key={c.pair} className="grid grid-cols-[1fr_auto] md:grid-cols-[230px_1fr_56px] items-center gap-x-4 gap-y-1 py-2.5 border-b border-border last:border-0">
+                  <span className="text-sm font-semibold">{c.pair}</span>
+                  <span className="num text-sm font-semibold md:order-3 text-right">{c.r > 0 ? "+" : "−"}{Math.abs(c.r).toFixed(2)}</span>
+                  <div className="relative h-4 col-span-2 md:col-span-1 md:order-2">
+                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-foreground" />
+                    <div className="absolute top-0.5 bottom-0.5 rounded-sm bg-accent" style={c.r >= 0 ? { left: "50%", width: `${c.r * 50}%` } : { right: "50%", width: `${-c.r * 50}%` }} />
+                  </div>
+                </div>
+              ))}
+              <div className="hidden md:grid grid-cols-[230px_1fr_56px] gap-x-4 text-xs text-muted-foreground num"><span /><div className="flex justify-between"><span>−1</span><span>0</span><span>+1</span></div></div>
             </div>
-            <div className="rounded-xl border border-accent/20 bg-gradient-to-br from-accent/10 to-card p-4 md:p-5">
-              <div className="flex items-center gap-2 text-accent"><Activity className="h-4 w-4" /><span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em]">EXPA1-like response proxy</span></div>
-              <div className="mt-3 flex flex-wrap items-baseline gap-2"><span className="font-display text-4xl font-bold tracking-tight text-foreground md:text-5xl">{fmt(prediction.geneProxy, 3)}</span><span className="text-sm font-medium text-muted-foreground">simulated fold-change units</span></div>
-              <p className="mt-2 text-xs text-muted-foreground">Raw model: {fmt(prediction.geneRaw, 4)} · illustrative band: <strong className="text-foreground">{prediction.warningBand}</strong></p>
-              {prediction.geneWasBounded && <p className="mt-2 text-xs text-accent">Output constrained to generated proxy range for display.</p>}
+          </Section>
+
+          <Section phase="Phase 3" title="Model selection in one line">
+            <p className="text-[15px] max-w-2xl">
+              Linear + interactions had the lowest cross-validated RMSE for both targets: root elongation R² <strong className="num">{MODEL_METRICS[2].r2.toFixed(3)}</strong> (RMSE {MODEL_METRICS[2].rmse.toFixed(3)}),
+              gene proxy R² <strong className="num">{MODEL_METRICS[7].r2.toFixed(3)}</strong> (RMSE {MODEL_METRICS[7].rmse.toFixed(3)}).{" "}
+              <button onClick={() => setView("validation")} className="underline underline-offset-4 font-semibold">See every model</button>
+            </p>
+          </Section>
+
+          <Section phase="Phase 4" title="Dose-response scenarios">
+            <FigureCaption title="Predicted root rate against hydrogel dose" source="Three illustrative soils: 60 kPa / 2 mm per day; 40 kPa / 4 mm per day; 25 kPa / 7 mm per day." caveat="Curves inherit the generator's assumptions and are bounded to the synthetic target range." />
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={doseResponse} margin={{ top: 8, right: 130, left: 0, bottom: 8 }}>
+                  <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
+                  <XAxis dataKey="dose" tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} tick={axisTick} tickFormatter={(v) => `${v}%`} />
+                  <YAxis tickLine={false} axisLine={false} width={36} tick={axisTick} domain={["auto", "auto"]} />
+                  <Tooltip cursor={{ stroke: "hsl(var(--foreground))" }} labelFormatter={(v) => `Hydrogel ${v}%`} formatter={(v: any, name: any) => [`${Number(v).toFixed(2)} mm/day`, name]}
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 13, color: "hsl(var(--foreground))" }} />
+                  {[
+                    ["mild", "Lower rigidity, more rain", "0"],
+                    ["moderate", "Moderate conditions", "6 4"],
+                    ["harsh", "High rigidity, low rain", "1 4"],
+                  ].map(([k, name, dash]) => (
+                    <Line key={k} type="linear" dataKey={k} name={name} stroke="hsl(var(--model))" strokeWidth={2.5} strokeDasharray={dash === "0" ? undefined : dash} strokeLinecap="round" dot={false}
+                      activeDot={{ r: 5, stroke: "hsl(var(--background))", strokeWidth: 2 }} animationDuration={600} animationEasing="ease-out"
+                      label={(p: any) => p.index === doseResponse.length - 1
+                        ? <text key={k} x={p.x + 8} y={p.y} dy={4} fontSize={12} fontWeight={600} fill="hsl(var(--foreground))">{name}</text>
+                        : <g key={p.index} />} />
+                  ))}
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
-            <div className={cn("rounded-xl border p-4", prediction.inObservedTrainingRange ? "border-primary/20 bg-primary/5" : "border-accent/25 bg-accent/5")}>
-              <div className="flex items-center gap-2">{prediction.inObservedTrainingRange ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <AlertTriangle className="h-4 w-4 text-accent" />}<p className="text-sm font-bold text-foreground">{prediction.inObservedTrainingRange ? "Inside observed feature ranges" : "Extrapolation warning"}</p></div>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{prediction.inObservedTrainingRange
-                ? "Each input falls between the minimum and maximum represented in the synthetic data. This is not evidence that the scenario is biologically validated."
-                : "Outside observed range for: " + prediction.outOfRangeFeatures.join(", ") + ". The model may be unreliable even if the slider allows these values."}</p>
+            <p className="text-xs text-muted-foreground">Same predicted quantity in all three lines, so one hue; solid, dashed and dotted lines tell the soils apart. <button onClick={() => setView("scenario")} className="underline underline-offset-4 font-semibold">Try your own scenario</button></p>
+          </Section>
+
+          <section className="grid gap-8 md:grid-cols-2 border-t border-foreground pt-3">
+            <div><h3 className="font-display text-lg font-bold">What this can demonstrate</h3><p className="text-sm text-muted-foreground mt-2">A reproducible dataset audit, summary statistics, model-family comparison, and working inference inside the actual app.</p></div>
+            <div><h3 className="font-display text-lg font-bold">What still needs evidence</h3><p className="text-sm text-muted-foreground mt-2">Real treatment response, optimal dose, crop-specific recommendations and EXPA1 transcriptomic response need published evidence and ideally controlled measurements.</p></div>
+          </section>
+        </div>
+      )}
+
+      {view === "validation" && (
+        <div className="space-y-12">
+          <Section title="Compare model families">
+            <p className="text-sm text-muted-foreground max-w-3xl">Scores use 5-fold CV repeated 3 times on the 800-row training partition. The 200-row holdout is separate; final holdout scores are in the report.</p>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div role="group" aria-label="Target" className="inline-flex border border-foreground rounded-md overflow-hidden text-sm font-semibold">
+                {([["root", "Root elongation"], ["gene", "Gene proxy"]] as const).map(([k, l]) => (
+                  <button key={k} onClick={() => setTarget(k)} aria-pressed={target === k} className={cn("min-h-11 px-4 transition-colors duration-100", target === k ? "bg-foreground text-background" : "hover:bg-muted")}>{l}</button>
+                ))}
+              </div>
+              <div className="flex items-center gap-4">
+                <button onClick={() => setShowBaseline((v) => !v)} className="min-h-11 text-sm font-semibold underline underline-offset-4">{showBaseline ? "Hide baseline" : "Show baseline"}</button>
+                <button onClick={downloadMetrics} className="min-h-11 inline-flex items-center gap-1.5 px-3 border border-border rounded-md text-sm font-semibold hover:border-foreground transition-colors duration-100"><Download className="w-4 h-4" aria-hidden /> Export metrics CSV</button>
+              </div>
             </div>
-          </div>
+
+            <div className="mt-6">
+              <FigureCaption title={`Mean CV R² for ${targetLabel.toLowerCase()}`} source="Dot is the mean, whisker is ±1 SD across folds. The blue dot has the lowest CV RMSE." caveat="R² here measures how well models reconstruct programmed patterns; it is not real-world performance." />
+              <R2DotPlot rows={visibleMetrics} bestModel={selectedMetric.model} />
+            </div>
+
+            <div className="mt-6 overflow-x-auto">
+              <table className="w-full min-w-[420px] text-sm num">
+                <caption className="sr-only">Cross-validated scores for {targetLabel}</caption>
+                <thead><tr className="border-b border-foreground text-left"><th className="py-2 pr-3 font-semibold">Model</th><th className="py-2 pr-3 font-semibold text-right">R² mean ± SD</th><th className="py-2 pr-3 font-semibold text-right">MAE</th><th className="py-2 font-semibold text-right">RMSE</th></tr></thead>
+                <tbody className="divide-y divide-border">
+                  {currentMetrics.map((m) => (
+                    <tr key={m.model}>
+                      <td className="py-2.5 pr-3 font-semibold">{m.model}{m.model === selectedMetric.model && <span className="ml-2 text-xs font-semibold text-model-ink">Lowest RMSE</span>}</td>
+                      <td className="py-2.5 pr-3 text-right">{fmt(m.r2, 4)} ± {fmt(m.r2Sd, 4)}</td>
+                      <td className="py-2.5 pr-3 text-right">{fmt(m.mae, 4)}</td>
+                      <td className="py-2.5 text-right">{fmt(m.rmse, 4)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-xs text-muted-foreground mt-2">MAE and RMSE are in the target&apos;s units; lower is better. Selection uses mean RMSE from these training folds.</p>
+            </div>
+          </Section>
+
+          <Section title="Which inputs matter">
+            <div className="grid gap-10 lg:grid-cols-2">
+              <div>
+                <FigureCaption title="Permutation importance" source="Drop in held-out R² when a feature is shuffled; Random Forest, 50 permutations (permutation_importance.csv)." caveat="Diagnostic association, not causality." />
+                <ul className="flex gap-5 text-sm mb-1" aria-label="Legend">
+                  <li className="inline-flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-sm bg-foreground" aria-hidden />Root elongation</li>
+                  <li className="inline-flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-sm bg-model" aria-hidden />Gene proxy</li>
+                </ul>
+                {PERMUTATION_IMPORTANCE.map((f) => (
+                  <div key={f.feature} className="py-2.5 border-b border-border last:border-0">
+                    <p className="text-sm font-semibold">{f.feature}</p>
+                    <BarRow label="Root" value={f.root} max={0.8} text={`${f.root.toFixed(3)} ± ${f.rootSd.toFixed(3)}`} />
+                    <BarRow label="Gene" value={f.gene} max={0.8} text={`${f.gene.toFixed(3)} ± ${f.geneSd.toFixed(3)}`} tone="model" />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <FigureCaption title="One-at-a-time sensitivity" source="Predicted root-rate swing from each input's 10th to 90th percentile, others at their medians." caveat="Model sensitivity inside a constructed scenario, not a universal optimal dose." />
+                {SENSITIVITY.map((s) => (
+                  <BarRow key={s.feature} label={s.feature} value={Math.abs(s.swing)} max={3.6} tone={s.swing < 0 ? "warn" : "ink"}
+                    text={`${s.swing > 0 ? "+" : "−"}${Math.abs(s.swing).toFixed(2)} mm/day`}
+                    note={`${s.swing < 0 ? "Lowers" : "Raises"} root rate · P10 ${s.p10.toFixed(2)} → P90 ${s.p90.toFixed(2)}`} />
+                ))}
+              </div>
+            </div>
+          </Section>
+
+          <Section title="When the model leaves the data">
+            <div className="grid gap-10 lg:grid-cols-2">
+              <div>
+                <FigureCaption title="High-rigidity extrapolation test" source="Trained on lower rigidity, tested on withheld higher-rigidity rows." caveat="Synthetic distribution shift, not real soil." />
+                {EXTRAPOLATION_STRESS_TEST.map((e) => {
+                  const biased = Math.abs(e.bias) > 0.3;
+                  return (
+                    <BarRow key={e.model} label={e.model} value={e.mae} max={1} tone={biased ? "warn" : "ink"}
+                      text={`MAE ${e.mae.toFixed(3)}`}
+                      note={`R² ${e.r2.toFixed(3)} · bias ${e.bias > 0 ? "+" : "−"}${Math.abs(e.bias).toFixed(3)} mm/day${biased ? " (over-predicts)" : ""}`} />
+                  );
+                })}
+                <p className="text-xs text-muted-foreground mt-2">The tree models lose the most outside the training range, which is why the lab greys that region out.</p>
+              </div>
+              <div>
+                <FigureCaption title="Interval calibration" source={`Separate synthetic exercise: ${INTERVAL_CALIBRATION.trainingRows} training, ${INTERVAL_CALIBRATION.calibrationRows} calibration, ${INTERVAL_CALIBRATION.testRows} test rows.`} />
+                <BarRow label="Nominal coverage" value={INTERVAL_CALIBRATION.nominalCoverage} max={1} text={`${(INTERVAL_CALIBRATION.nominalCoverage * 100).toFixed(0)}%`} />
+                <BarRow label="Empirical coverage" value={INTERVAL_CALIBRATION.empiricalCoverage} max={1} tone="model" text={`${(INTERVAL_CALIBRATION.empiricalCoverage * 100).toFixed(1)}%`} />
+                <dl className="grid grid-cols-2 gap-6 mt-5">
+                  <div><dt className="text-sm text-muted-foreground">90% half-width</dt><dd className="font-display text-2xl font-bold num">±{INTERVAL_CALIBRATION.halfWidth.toFixed(2)}<span className="text-sm text-muted-foreground font-medium ml-1">mm/day</span></dd></div>
+                  <div><dt className="text-sm text-muted-foreground">Root residual SD</dt><dd className="font-display text-2xl font-bold num">{RESIDUAL_STANDARD_DEVIATIONS.root.toFixed(2)}<span className="text-sm text-muted-foreground font-medium ml-1">mm/day</span></dd></div>
+                  <div className="col-span-2"><dt className="text-sm text-muted-foreground">Proxy residual SD</dt><dd className="font-display text-2xl font-bold num">{RESIDUAL_STANDARD_DEVIATIONS.geneProxy.toFixed(2)}</dd><dd className="text-xs text-muted-foreground">Simulated proxy spread, not lab-assay precision.</dd></div>
+                </dl>
+              </div>
+            </div>
+          </Section>
+
+          <section className="border-l-2 border-warn pl-4 max-w-3xl">
+            <h3 className="font-display text-lg font-bold">Keep validation designs separate</h3>
+            <p className="text-sm text-muted-foreground mt-2">Phase 3 selected models using repeated 5-fold CV × 3 repeats on 800 training rows, then evaluated candidates on a separate 200-row holdout. The Phase 4 supplemental figure uses 5-fold CV × 5 repeats across the full synthetic dataset. These answer different questions and should not be combined into one score.</p>
+            <p className="text-sm text-muted-foreground mt-2">The API models are refit on all 1,000 generated rows for the local demo. Holdout tables are separate comparison evidence; the deployed inference is not a real-world validated crop model.</p>
+          </section>
         </div>
-      </section>
-      <section className="rounded-xl border border-border bg-card/70 p-4 md:p-5">
-        <SectionTitle eyebrow="How to interpret this" title="A scenario explorer, not an agronomy recommendation" />
-        <div className="grid gap-3 md:grid-cols-3">{[
-          { n: "01", title: "Change one factor", body: "Compare one variable at a time to understand the synthetic model's response." },
-          { n: "02", title: "Watch the observed range", body: "A value may be within the slider limits but outside the data used to fit the model." },
-          { n: "03", title: "Do not infer causality", body: "The targets are generated by code; the model learns programmed patterns rather than proving an actual treatment effect." },
-        ].map((item) => <div key={item.n} className="rounded-lg border border-border/70 bg-background/40 p-3"><span className="font-mono text-[10px] font-bold text-primary">{item.n}</span><h4 className="mt-1 text-sm font-semibold text-foreground">{item.title}</h4><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.body}</p></div>)}</div>
-      </section>
-    </div>}
+      )}
 
-    {view === "validation" && <div className="space-y-6">
-      <section>
-        <SectionTitle eyebrow="Repeated cross-validation" title="Compare model families" description="Phase 3 scores use 5-fold CV repeated 3 times on the 800-row training partition. The 200-row holdout is separate; final holdout scores are in the report." />
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/70 p-3">
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setTarget("root")} className={cn("rounded-lg px-3 py-2 text-xs font-bold transition", target === "root" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary")}>Root elongation</button>
-            <button onClick={() => setTarget("gene")} className={cn("rounded-lg px-3 py-2 text-xs font-bold transition", target === "gene" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary")}>Gene proxy</button>
-          </div>
-          <button onClick={downloadMetrics} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:text-foreground"><Download className="h-3.5 w-3.5" /> Export metrics CSV</button>
+      <footer className="border-t border-border pt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+        <p className="text-muted-foreground max-w-xl">Methodology, data-generation log and reproducibility steps are documented in the project repository.</p>
+        <div className="flex gap-5 font-semibold">
+          <Link href="/methods" className="underline underline-offset-4">Data &amp; Methods</Link>
+          <Link href="/more" className="underline underline-offset-4">Back to app tools</Link>
         </div>
-        <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
-          <div className="rounded-xl border border-border bg-card/80 p-4 md:p-5">
-            <div className="mb-2 flex items-center justify-between gap-3"><h4 className="text-sm font-bold text-foreground">Mean CV R²</h4><button onClick={() => setShowBaseline((v) => !v)} className="text-[10px] font-semibold text-primary hover:underline">{showBaseline ? "Hide baseline" : "Show baseline"}</button></div>
-            <div className="h-[285px] w-full"><ResponsiveContainer width="100%" height="100%">
-              <BarChart data={visibleMetrics.map((m) => ({ ...m, short: m.model === "Mean baseline" ? "Baseline" : m.model === "Linear regression" ? "Linear" : m.model === "Linear + interactions" ? "Linear + int." : m.model }))} margin={{ top: 8, right: 14, bottom: 18, left: -10 }}>
-                <CartesianGrid stroke={gridStroke} strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="short" tick={axisStyle} tickLine={false} axisLine={false} interval={0} angle={-12} textAnchor="end" height={52} />
-                <YAxis domain={[-0.05, 1]} tick={axisStyle} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(value) => [Number(value).toFixed(4), "Mean CV R²"]} />
-                <ReferenceLine y={0} stroke="#899184" />
-                <Bar dataKey="r2" name="Mean CV R²" radius={[5, 5, 0, 0]} maxBarSize={42}>{visibleMetrics.map((m) => <Cell key={m.model} fill={m.model === selectedMetric.model ? "#6EE7A8" : "#71816a"} />)}</Bar>
-              </BarChart>
-            </ResponsiveContainer></div>
-            <p className="text-[10px] leading-relaxed text-muted-foreground">R² is a fit statistic on generated data. Scores show how well candidates reconstruct programmed target patterns; they do not prove real-world predictive performance.</p>
-          </div>
-          <div className="rounded-xl border border-border bg-card/80 p-4 md:p-5">
-            <h4 className="text-sm font-bold text-foreground">Scores for {targetLabel}</h4>
-            <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[360px] text-left text-xs">
-              <thead className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground"><tr><th className="py-2 pr-2 font-semibold">Model</th><th className="py-2 pr-2 font-semibold">R² mean ± SD</th><th className="py-2 pr-2 font-semibold">MAE</th><th className="py-2 font-semibold">RMSE</th></tr></thead>
-              <tbody>{currentMetrics.map((m) => <tr key={m.model} className={cn("border-b border-border/60 last:border-0", m.model === selectedMetric.model && "bg-primary/5")}>
-                <td className="py-3 pr-2 font-medium text-foreground">{m.model}{m.model === selectedMetric.model && <span className="ml-1.5 inline-block rounded bg-primary/10 px-1.5 py-0.5 text-[9px] text-primary">Lowest CV RMSE</span>}</td>
-                <td className="py-3 pr-2 font-mono text-muted-foreground">{fmt(m.r2, 4)} ± {fmt(m.r2Sd, 4)}</td><td className="py-3 pr-2 font-mono text-muted-foreground">{fmt(m.mae, 4)}</td><td className="py-3 font-mono text-muted-foreground">{fmt(m.rmse, 4)}</td>
-              </tr>)}</tbody>
-            </table></div>
-            <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">MAE and RMSE use the target's units. Lower values are better. Selection uses mean RMSE from these training folds.</p>
-          </div>
-        </div>
-      </section>
-
-
-      <section className="rounded-xl border border-border bg-card/80 p-4 md:p-5">
-        <SectionTitle eyebrow="Supplemental analysis" title="Permutation feature importance" description="How much held-out R² changes when a feature is shuffled in the supplemental Random Forest analysis. This is diagnostic association, not causality." />
-        <div className="h-[245px] w-full"><ResponsiveContainer width="100%" height="100%">
-          <BarChart data={PERMUTATION_IMPORTANCE} layout="vertical" margin={{ top: 6, right: 18, bottom: 4, left: 8 }}>
-            <CartesianGrid stroke={gridStroke} horizontal={false} />
-            <XAxis type="number" tick={axisStyle} tickLine={false} axisLine={false} />
-            <YAxis type="category" dataKey="feature" width={145} tick={axisStyle} tickLine={false} axisLine={false} />
-            <Tooltip contentStyle={tooltipStyle} formatter={(value) => [Number(value).toFixed(3), "Mean drop in R² when shuffled"]} />
-            <Legend wrapperStyle={{ fontSize: 11, color: "#9ca89a" }} />
-            <Bar dataKey="root" name="Root elongation" fill="#6EE7A8" radius={[0, 4, 4, 0]} maxBarSize={18} />
-            <Bar dataKey="gene" name="Gene proxy" fill="#D4A854" radius={[0, 4, 4, 0]} maxBarSize={18} />
-          </BarChart>
-        </ResponsiveContainer></div>
-        <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">Source: supplemental permutation_importance.csv; 50 permutations on a held-out partition for Random Forest. These importance scores are not the Phase 3 model-selection metric and should not be read as causal effects.</p>
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card/80 p-4 md:p-5">
-          <SectionTitle eyebrow="Supplemental analysis" title="One-at-a-time sensitivity" description="Predicted root-rate swing from each input's 10th to 90th percentile, holding other features at their medians." />
-          <div className="space-y-4">{SENSITIVITY.map((s) => <div key={s.feature}>
-            <div className="mb-1.5 flex items-center justify-between gap-2"><span className="text-xs font-semibold text-foreground">{s.feature}</span><span className={cn("font-mono text-xs font-bold", s.swing < 0 ? "text-accent" : "text-primary")}>{s.swing > 0 ? "+" : ""}{s.swing.toFixed(2)} mm/day</span></div>
-            <div className="h-2 overflow-hidden rounded-full bg-border"><div className={cn("h-full rounded-full", s.swing < 0 ? "bg-accent" : "bg-primary")} style={{ width: (Math.min(100, Math.abs(s.swing) / 3.6 * 100)) + "%" }} /></div>
-            <p className="mt-1 text-[10px] text-muted-foreground">P10 {s.p10.toFixed(2)} → P90 {s.p90.toFixed(2)}</p>
-          </div>)}</div>
-          <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">This is model sensitivity inside a constructed scenario, not a causal effect or universally optimal dose.</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card/80 p-4 md:p-5">
-          <SectionTitle eyebrow="Supplemental analysis" title="High-rigidity extrapolation test" description="Models train on lower rigidity values and are tested on higher-rigidity rows withheld from that training subset." />
-          <div className="h-[240px] w-full"><ResponsiveContainer width="100%" height="100%">
-            <BarChart data={EXTRAPOLATION_STRESS_TEST} margin={{ top: 8, right: 12, bottom: 10, left: -10 }}>
-              <CartesianGrid stroke={gridStroke} strokeDasharray="3 3" vertical={false} /><XAxis dataKey="model" tick={axisStyle} tickLine={false} axisLine={false} interval={0} angle={-12} textAnchor="end" height={50} /><YAxis tick={axisStyle} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(value) => [Number(value).toFixed(3) + " mm/day", "MAE"]} />
-              <Bar dataKey="mae" name="MAE" fill="#D4A854" radius={[5, 5, 0, 0]} maxBarSize={38} />
-            </BarChart>
-          </ResponsiveContainer></div>
-          <p className="text-[10px] leading-relaxed text-muted-foreground">Linear + interactions: R² {EXTRAPOLATION_STRESS_TEST[1].r2.toFixed(3)}, MAE {EXTRAPOLATION_STRESS_TEST[1].mae.toFixed(3)}. This is a synthetic distribution-shift check, not a test on real soil measurements.</p>
-        </div>
-      </section>
-
-      <section className="grid gap-3 md:grid-cols-3">
-        <MetricCard icon={Target} label="90% interval half-width" value={"±" + INTERVAL_CALIBRATION.halfWidth.toFixed(2) + " mm/day"} note={"Separate synthetic calibration exercise; empirical coverage " + (INTERVAL_CALIBRATION.empiricalCoverage * 100).toFixed(1) + "% on " + INTERVAL_CALIBRATION.testRows + " synthetic test rows."} tone="blue" />
-        <MetricCard icon={Activity} label="Root residual SD" value={RESIDUAL_STANDARD_DEVIATIONS.root.toFixed(2) + " mm/day"} note="Out-of-fold residual spread from the supplemental analysis." />
-        <MetricCard icon={Beaker} label="Proxy residual SD" value={RESIDUAL_STANDARD_DEVIATIONS.geneProxy.toFixed(2)} note="Residual spread for the simulated proxy, not lab-assay precision." tone="amber" />
-      </section>
-
-      <section className="rounded-xl border border-accent/25 bg-accent/5 p-4 md:p-5">
-        <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-accent" /><div>
-          <h3 className="text-sm font-bold text-foreground">Keep validation designs separate</h3>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Phase 3 selected models using repeated 5-fold CV × 3 repeats on 800 training rows, then evaluated candidates on a separate 200-row holdout. The Phase 4 supplemental figure uses 5-fold CV × 5 repeats across the full synthetic dataset. These answer different questions and should not be combined into one score.</p>
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">The API models are refit on all 1,000 generated rows for the local demo. Holdout tables are separate comparison evidence; the deployed inference is not a real-world validated crop model.</p>
-        </div></div>
-      </section>
-    </div>}
-
-    <footer className="flex flex-col gap-3 rounded-xl border border-border bg-background/40 p-4 md:flex-row md:items-center md:justify-between">
-      <div><p className="text-xs font-bold text-foreground">Research resources</p><p className="mt-1 text-[11px] text-muted-foreground">Methodology, data-generation log, and reproducibility steps are documented in the project repository.</p></div>
-      <Link href="/more" className="inline-flex items-center gap-1.5 self-start rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:border-primary/30 hover:text-foreground md:self-auto">Back to app tools <ChevronRight className="h-3.5 w-3.5" /></Link>
-    </footer>
-  </div>;
+      </footer>
+    </div>
+  );
 }

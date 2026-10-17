@@ -44,7 +44,8 @@ The existing app's Netlify build is configured by `netlify.toml`. Use a branch a
 ## Research documentation
 
 - [Research Lab methodology and metric provenance](docs/RESEARCH_LAB_METHODOLOGY.md)
-- [Model-comparison output in the project research package](https://github.com/ajslockin-lab/finishedagrisenseai)
+- [Research package: data, code, models, tables and Phase 4 figures](research/README.md)
+- [Plain-English guide and phase reports](docs/research/START_HERE_PLAIN_ENGLISH.md)
 - [Research Lab route](src/app/research/page.tsx)
 - [In-browser research model and metric constants](src/data/agrisense-research.ts)
 

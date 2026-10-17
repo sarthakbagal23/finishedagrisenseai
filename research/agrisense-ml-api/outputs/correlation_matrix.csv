@@ -1,0 +1,6 @@
+variable,Hydrogel_Concentration_Percent,Soil_Rigidity_kPa,Average_Daily_Rainfall_mm,Root_Elongation_Rate_mm_day,Stress_Gene_Expression_Fold_Change
+Hydrogel_Concentration_Percent,1.0,-0.10755,0.0178,0.58478,-0.54927
+Soil_Rigidity_kPa,-0.10755,1.0,-0.69131,-0.75994,0.7374
+Average_Daily_Rainfall_mm,0.0178,-0.69131,1.0,0.63749,-0.63356
+Root_Elongation_Rate_mm_day,0.58478,-0.75994,0.63749,1.0,-0.8453
+Stress_Gene_Expression_Fold_Change,-0.54927,0.7374,-0.63356,-0.8453,1.0

@@ -29,26 +29,38 @@ export function Navigation() {
     localStorage.setItem('agrisense_sidebar_collapsed', String(next));
   };
 
+  // Research first. The farm-app screens are kept as a labelled prototype.
   const primaryNav = [
-    { label: t('nav_home'), icon: Home, href: '/' },
-    { label: t('nav_advisor'), icon: Brain, href: '/advisor' },
-    { label: t('nav_sensors'), icon: Activity, href: '/sensors' },
-    { label: t('nav_market'), icon: TrendingUp, href: '/prices' },
+    { label: 'Story', icon: Home, href: '/' },
+    { label: 'Dataset', icon: FileText, href: '/dataset' },
+    { label: 'Findings', icon: Microscope, href: '/findings' },
+    { label: 'Resources', icon: Landmark, href: '/resources' },
     { label: t('nav_more'), icon: LayoutGrid, href: '/more' },
   ];
 
-  const secondaryNav = [
-    { label: 'Research Lab', icon: Microscope, href: '/research' },
-    { label: 'Weather', icon: Cloud, href: '/weather' },
-    { label: 'Diagnosis', icon: ShieldCheck, href: '/diagnosis' },
-    { label: 'Journal', icon: FileText, href: '/journal' },
-    { label: 'Schemes', icon: Landmark, href: '/schemes' },
-    { label: 'Education', icon: BookOpen, href: '/education' },
-    { label: 'Data & Methods', icon: Info, href: '/methods' },
+  const researchNav = [
+    { label: 'Story', href: '/' },
+    { label: 'Explore the dataset', href: '/dataset' },
+    { label: 'What the data shows', href: '/findings' },
+    { label: 'Farmer resources', href: '/resources' },
+    { label: 'Limitations & sources', href: '/methods' },
+    { label: 'Research Lab (demo)', href: '/research' },
+  ];
+
+  const prototypeNav = [
+    { label: 'Field dashboard', href: '/field' },
+    { label: 'Advisor', href: '/advisor' },
+    { label: 'Sensors', href: '/sensors' },
+    { label: 'Market', href: '/prices' },
+    { label: 'Weather', href: '/weather' },
+    { label: 'Diagnosis', href: '/diagnosis' },
+    { label: 'Journal', href: '/journal' },
+    { label: 'Schemes', href: '/schemes' },
+    { label: 'Education', href: '/education' },
   ];
 
   const isActive = (href: string) =>
-    pathname === href || (href !== '/' && pathname.startsWith(href));
+    href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/');
 
   if (!mounted) return null;
 
@@ -84,11 +96,11 @@ export function Navigation() {
         </div>
 
         <nav className="flex-1 py-5 overflow-y-auto" aria-label="Primary">
-          {!collapsed && <p className="px-5 mb-1 text-xs font-semibold text-muted-foreground">Field</p>}
-          {primaryNav.map(link)}
+          {!collapsed && <p className="px-5 mb-1 text-xs font-semibold text-muted-foreground">Research</p>}
+          {researchNav.map(link)}
           <div className="my-4 mx-5 gold-line" />
-          {!collapsed && <p className="px-5 mb-1 text-xs font-semibold text-muted-foreground">Tools</p>}
-          {secondaryNav.map(link)}
+          {!collapsed && <p className="px-5 mb-1 text-xs font-semibold text-muted-foreground">Prototype app (simulated)</p>}
+          {prototypeNav.map(link)}
         </nav>
 
         <div className="border-t border-border py-2">

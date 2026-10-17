@@ -1,0 +1,183 @@
+{
+  "dataset": "agrisense_synthetic_trials_cleaned.csv",
+  "data_type": "synthetic only; no measured crop-trial, weather, soil-instrument, or laboratory observations",
+  "rows": 1000,
+  "features": [
+    "Soil_Rigidity_kPa",
+    "Hydrogel_Concentration_Percent",
+    "Average_Daily_Rainfall_mm"
+  ],
+  "targets": {
+    "root_elongation": "Root_Elongation_Rate_mm_day",
+    "gene_expression_proxy": "Stress_Gene_Expression_Fold_Change"
+  },
+  "train_rows": 800,
+  "test_rows": 200,
+  "test_size_fraction": 0.2,
+  "random_state": 42,
+  "split_method": "Fixed shuffled 80/20 row split. The holdout is not used for model selection.",
+  "selection_method": "Lowest mean RMSE across 3 repeats of 5-fold CV on the training partition only.",
+  "metrics_note": "Holdout metrics describe fit to held-out records produced by the same synthetic generation recipe; they do not establish real-world validity.",
+  "models": {
+    "Root_Elongation_Rate_mm_day": {
+      "label": "synthetic root elongation rate",
+      "cross_validation_on_training_partition": {
+        "training_mean_baseline": {
+          "R2_mean": -0.016165895802840145,
+          "R2_sd": 0.018465815168538933,
+          "MAE_mean": 1.6705557161458335,
+          "MAE_sd": 0.08374199025593117,
+          "RMSE_mean": 2.067617402547531,
+          "RMSE_sd": 0.09242866402042284
+        },
+        "linear_regression": {
+          "R2_mean": 0.8686342721772171,
+          "R2_sd": 0.014099713561361754,
+          "MAE_mean": 0.5917191636291357,
+          "MAE_sd": 0.029084048336043593,
+          "RMSE_mean": 0.7411494790266938,
+          "RMSE_sd": 0.029432438232962998
+        },
+        "linear_interactions": {
+          "R2_mean": 0.87284025549412,
+          "R2_sd": 0.015119298287842012,
+          "MAE_mean": 0.5844496008998432,
+          "MAE_sd": 0.0295525905467964,
+          "RMSE_mean": 0.7287191227297611,
+          "RMSE_sd": 0.028576332461824245
+        },
+        "random_forest": {
+          "R2_mean": 0.8470054919973167,
+          "R2_sd": 0.02095685294314318,
+          "MAE_mean": 0.6381677198117134,
+          "MAE_sd": 0.03726034905166892,
+          "RMSE_mean": 0.7989358726095562,
+          "RMSE_sd": 0.04323712672190522
+        },
+        "gradient_boosting": {
+          "R2_mean": 0.8566830934273336,
+          "R2_sd": 0.01984844612224623,
+          "MAE_mean": 0.6141830586839387,
+          "MAE_sd": 0.03512485314755658,
+          "RMSE_mean": 0.7729547757623096,
+          "RMSE_sd": 0.03852506285425059
+        }
+      },
+      "holdout_metrics_by_model": {
+        "training_mean_baseline": {
+          "R2": -0.002761332516562076,
+          "MAE": 1.6658272500000002,
+          "RMSE": 2.043553992779797
+        },
+        "linear_regression": {
+          "R2": 0.8689653072755608,
+          "MAE": 0.5897493417168694,
+          "RMSE": 0.7387210502027087
+        },
+        "linear_interactions": {
+          "R2": 0.8685615541161558,
+          "MAE": 0.6041509612032815,
+          "RMSE": 0.7398582740533434
+        },
+        "random_forest": {
+          "R2": 0.8480742358114514,
+          "MAE": 0.6640818743437126,
+          "RMSE": 0.7954319698450615
+        },
+        "gradient_boosting": {
+          "R2": 0.8630886079798494,
+          "MAE": 0.611925259211055,
+          "RMSE": 0.7551046076747717
+        }
+      }
+    },
+    "Stress_Gene_Expression_Fold_Change": {
+      "label": "EXPA1-like synthetic response proxy",
+      "cross_validation_on_training_partition": {
+        "training_mean_baseline": {
+          "R2_mean": -0.010426847064436447,
+          "R2_sd": 0.013321829047056031,
+          "MAE_mean": 0.6528215455729167,
+          "MAE_sd": 0.026333764681679535,
+          "RMSE_mean": 0.7901319873505244,
+          "RMSE_sd": 0.030763657077156847
+        },
+        "linear_regression": {
+          "R2_mean": 0.8066901944333524,
+          "R2_sd": 0.02096053468286323,
+          "MAE_mean": 0.2761556119395633,
+          "MAE_sd": 0.01421375509408303,
+          "RMSE_mean": 0.34468102478612206,
+          "RMSE_sd": 0.01662561503847864
+        },
+        "linear_interactions": {
+          "R2_mean": 0.8368921203322806,
+          "R2_sd": 0.018668766265601957,
+          "MAE_mean": 0.2518398398481232,
+          "MAE_sd": 0.00983142445297841,
+          "RMSE_mean": 0.3164205712009375,
+          "RMSE_sd": 0.013391923903056307
+        },
+        "random_forest": {
+          "R2_mean": 0.8101324411697136,
+          "R2_sd": 0.016139457437012495,
+          "MAE_mean": 0.27079801675242526,
+          "MAE_sd": 0.011238018191134111,
+          "RMSE_mean": 0.34191192811281407,
+          "RMSE_sd": 0.013806459013749111
+        },
+        "gradient_boosting": {
+          "R2_mean": 0.8153330676762157,
+          "R2_sd": 0.017924760923449926,
+          "MAE_mean": 0.269999825281763,
+          "MAE_sd": 0.009939812064550553,
+          "RMSE_mean": 0.3369529690860022,
+          "RMSE_sd": 0.012087488104369942
+        }
+      },
+      "holdout_metrics_by_model": {
+        "training_mean_baseline": {
+          "R2": -0.009700060023067225,
+          "MAE": 0.6334250499999999,
+          "RMSE": 0.7639673809626952
+        },
+        "linear_regression": {
+          "R2": 0.8074603004768388,
+          "MAE": 0.26649897287340424,
+          "RMSE": 0.33360977690649823
+        },
+        "linear_interactions": {
+          "R2": 0.8565873156339635,
+          "MAE": 0.2326563924308866,
+          "RMSE": 0.2879203803498995
+        },
+        "random_forest": {
+          "R2": 0.8355456557710862,
+          "MAE": 0.25021955804844453,
+          "RMSE": 0.30831971797569935
+        },
+        "gradient_boosting": {
+          "R2": 0.8458486326983601,
+          "MAE": 0.23956859138019027,
+          "RMSE": 0.2985054849093009
+        }
+      }
+    }
+  },
+  "final_api_model_choice": {
+    "Root_Elongation_Rate_mm_day": {
+      "chosen_for_api": "linear_interactions",
+      "selection_basis": "Lowest mean CV RMSE on the 800 training rows using 3x5-fold CV.",
+      "training_rows_for_cv": 800,
+      "final_api_refit_rows": 1000,
+      "reason_and_limit": "Selected by cross-validation without consulting the holdout scores, then refit on all synthetic rows for the local demo. Not validated on real biological measurements."
+    },
+    "Stress_Gene_Expression_Fold_Change": {
+      "chosen_for_api": "linear_interactions",
+      "selection_basis": "Lowest mean CV RMSE on the 800 training rows using 3x5-fold CV.",
+      "training_rows_for_cv": 800,
+      "final_api_refit_rows": 1000,
+      "reason_and_limit": "Selected by cross-validation without consulting the holdout scores, then refit on all synthetic rows for the local demo. Not validated on real biological measurements."
+    }
+  }
+}

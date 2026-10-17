@@ -447,7 +447,7 @@ export default function ResearchLabPage() {
                       note={`R² ${e.r2.toFixed(3)} · bias ${e.bias > 0 ? "+" : "−"}${Math.abs(e.bias).toFixed(3)} mm/day${biased ? " (over-predicts)" : ""}`} />
                   );
                 })}
-                <p className="text-xs text-muted-foreground mt-2">The tree models lose the most outside the training range, which is why the lab greys that region out.</p>
+                <p className="text-xs text-muted-foreground mt-2">The tree models lose the most once rigidity moves past what they trained on, the same failure the grey region in the scenario lab warns about.</p>
               </div>
               <div>
                 <FigureCaption title="Interval calibration" source={`Separate synthetic exercise: ${INTERVAL_CALIBRATION.trainingRows} training, ${INTERVAL_CALIBRATION.calibrationRows} calibration, ${INTERVAL_CALIBRATION.testRows} test rows.`} />

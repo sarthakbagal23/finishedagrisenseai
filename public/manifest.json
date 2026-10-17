@@ -1,7 +1,7 @@
 {
-  "name": "AgriSense AI India",
+  "name": "AgriSense AI",
   "short_name": "AgriSense",
-  "description": "Precision agricultural technology for small farmers in India",
+  "description": "A climate data science project on drought, soil hardening and root growth, with trusted farmer resources for India",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f6f4ee",

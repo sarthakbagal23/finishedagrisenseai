@@ -1,0 +1,7 @@
+target,feature,importance,sd
+root,Soil_Rigidity_kPa,0.6789,0.0504
+root,Hydrogel_Concentration_Percent,0.5547,0.0462
+root,Average_Daily_Rainfall_mm,0.074,0.0097
+gene,Soil_Rigidity_kPa,0.4123,0.0333
+gene,Hydrogel_Concentration_Percent,0.4812,0.0375
+gene,Average_Daily_Rainfall_mm,0.2566,0.0279

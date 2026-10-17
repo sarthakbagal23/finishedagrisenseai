@@ -1,0 +1,11 @@
+target,model,R2_mean,R2_sd,MAE_mean,MAE_sd,RMSE_mean,RMSE_sd
+root_elongation,training_mean_baseline,-0.016166,0.018466,1.670556,0.083742,2.067617,0.092429
+root_elongation,linear_regression,0.868634,0.0141,0.591719,0.029084,0.741149,0.029432
+root_elongation,linear_interactions,0.87284,0.015119,0.58445,0.029553,0.728719,0.028576
+root_elongation,random_forest,0.847005,0.020957,0.638168,0.03726,0.798936,0.043237
+root_elongation,gradient_boosting,0.856683,0.019848,0.614183,0.035125,0.772955,0.038525
+gene_expression_proxy,training_mean_baseline,-0.010427,0.013322,0.652822,0.026334,0.790132,0.030764
+gene_expression_proxy,linear_regression,0.80669,0.020961,0.276156,0.014214,0.344681,0.016626
+gene_expression_proxy,linear_interactions,0.836892,0.018669,0.25184,0.009831,0.316421,0.013392
+gene_expression_proxy,random_forest,0.810132,0.016139,0.270798,0.011238,0.341912,0.013806
+gene_expression_proxy,gradient_boosting,0.815333,0.017925,0.27,0.00994,0.336953,0.012087

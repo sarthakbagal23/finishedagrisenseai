@@ -1,0 +1,74 @@
+{
+  "dataset_file_audited": "agrisense_synthetic_trials_original.csv",
+  "cleaned_file_written": "data/agrisense_synthetic_trials_cleaned.csv",
+  "row_count_original": 1000,
+  "row_count_cleaned": 1000,
+  "column_count": 6,
+  "duplicate_trial_ids_in_source": 0,
+  "exact_duplicate_rows_in_source": 0,
+  "missing_values_by_column": {
+    "Trial_ID": 0,
+    "Hydrogel_Concentration_Percent": 0,
+    "Soil_Rigidity_kPa": 0,
+    "Average_Daily_Rainfall_mm": 0,
+    "Root_Elongation_Rate_mm_day": 0,
+    "Stress_Gene_Expression_Fold_Change": 0
+  },
+  "numeric_conversion_failures": {
+    "Hydrogel_Concentration_Percent": 0,
+    "Soil_Rigidity_kPa": 0,
+    "Average_Daily_Rainfall_mm": 0,
+    "Root_Elongation_Rate_mm_day": 0,
+    "Stress_Gene_Expression_Fold_Change": 0
+  },
+  "allowed_range_violations": {
+    "Hydrogel_Concentration_Percent": 0,
+    "Soil_Rigidity_kPa": 0,
+    "Average_Daily_Rainfall_mm": 0,
+    "Root_Elongation_Rate_mm_day": 0,
+    "Stress_Gene_Expression_Fold_Change": 0
+  },
+  "off_documented_hydrogel_tiers": 0,
+  "statistical_outlier_flags_tukey_iqr": {
+    "Hydrogel_Concentration_Percent": {
+      "count": 0,
+      "lower_fence": -1.0,
+      "upper_fence": 3.0,
+      "note": "Statistical flag only; not automatically invalid or removed."
+    },
+    "Soil_Rigidity_kPa": {
+      "count": 2,
+      "lower_fence": 5.1238,
+      "upper_fence": 76.4337,
+      "note": "Statistical flag only; not automatically invalid or removed."
+    },
+    "Average_Daily_Rainfall_mm": {
+      "count": 28,
+      "lower_fence": -3.5887,
+      "upper_fence": 11.1012,
+      "note": "Statistical flag only; not automatically invalid or removed."
+    },
+    "Root_Elongation_Rate_mm_day": {
+      "count": 1,
+      "lower_fence": 3.115,
+      "upper_fence": 14.535,
+      "note": "Statistical flag only; not automatically invalid or removed."
+    },
+    "Stress_Gene_Expression_Fold_Change": {
+      "count": 1,
+      "lower_fence": -0.2416,
+      "upper_fence": 4.4494,
+      "note": "Statistical flag only; not automatically invalid or removed."
+    }
+  },
+  "issues_or_warnings": [],
+  "rows_removed_for_integrity_reasons": 0,
+  "rows_removed_audit_file": "outputs/removed_rows_audit.csv",
+  "cleaning_rule": "Rows with missing/invalid required values, failed numeric conversions, range violations, undocumented hydrogel tiers, exact duplicates, or duplicate Trial_IDs after the first occurrence are removed from the cleaned copy and listed in removed_rows_audit.csv. Valid statistical outliers are retained.",
+  "limitations": [
+    "All data are synthetic and generated from coded assumptions.",
+    "Hydrogel percentage basis is not specified in the source schema; do not describe it as w/w or w/v without changing the experiment specification.",
+    "The EXPA1-like gene-expression column is a hypothetical scenario proxy, not a laboratory measurement.",
+    "The observed range can be narrower than the declared allowed range because generation uses a particular random seed."
+  ]
+}

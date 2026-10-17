@@ -1,0 +1,7 @@
+Target,Comparison_Model,Feature,Coefficient,Intercept
+Root_Elongation_Rate_mm_day,linear_regression,Soil_Rigidity_kPa,-0.0866029,9.9215986
+Root_Elongation_Rate_mm_day,linear_regression,Hydrogel_Concentration_Percent,1.7342356,9.9215986
+Root_Elongation_Rate_mm_day,linear_regression,Average_Daily_Rainfall_mm,0.1930298,9.9215986
+Stress_Gene_Expression_Fold_Change,linear_regression,Soil_Rigidity_kPa,0.0308699,1.7880964
+Stress_Gene_Expression_Fold_Change,linear_regression,Hydrogel_Concentration_Percent,-0.6191803,1.7880964
+Stress_Gene_Expression_Fold_Change,linear_regression,Average_Daily_Rainfall_mm,-0.0811417,1.7880964

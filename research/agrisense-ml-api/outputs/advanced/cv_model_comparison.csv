@@ -1,0 +1,11 @@
+target,model,R2_mean,R2_sd,MAE_mean,MAE_sd,RMSE_mean,RMSE_sd
+root,Mean baseline,-0.0051,0.0073,1.6683,0.0646,2.0605,0.0698
+root,Linear,0.8696,0.0136,0.5901,0.0274,0.7403,0.0293
+root,Linear + interactions,0.8731,0.013,0.5865,0.027,0.7302,0.0288
+root,Random Forest,0.852,0.0147,0.6352,0.0294,0.7888,0.0311
+root,Gradient Boosting,0.8633,0.0145,0.6063,0.03,0.7579,0.0317
+gene,Mean baseline,-0.0063,0.0076,0.6481,0.0209,0.7847,0.0198
+gene,Linear,0.8085,0.012,0.274,0.0079,0.3421,0.0114
+gene,Linear + interactions,0.8424,0.0124,0.2476,0.0089,0.3102,0.0114
+gene,Random Forest,0.8164,0.0184,0.2667,0.0118,0.3346,0.0153
+gene,Gradient Boosting,0.8271,0.0165,0.2605,0.0126,0.3248,0.015

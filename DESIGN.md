@@ -1,40 +1,61 @@
-# AgriSense design system (data science edition)
+# AgriSense AI design system
 
-## Brief
-- **Subject:** AgriSense, a farm data app for small farmers in India. The detail only this product has: a Research Lab that predicts root growth from soil rigidity, hydrogel and rainfall, with a calibrated 90% interval and an honest extrapolation test.
-- **Audience:** judges scoring a Data Science entry (data quality, modelling, communication, ethics), then the farmer using it in daylight on a phone.
-- **Primary job:** show the whole pipeline (data, audit, model, validation, scenario, limits) so every number is traceable to where it came from.
-- **Voice:** plain and exact, like a field notebook. It says what it knows and what it does not.
-- **The one memorable thing:** the scenario lab. Move a slider and the predicted curve moves with its 90% band, while the training range stays shaded so extrapolation is visible.
+## 1. Visual theme and atmosphere
+An Indian crop research fieldbook with the clarity of a small scientific journal. The product is precise and practical, not a live farm-control system: synthetic research and simulated prototype tools must remain obvious.
 
-## Dials
-DESIGN_VARIANCE 6, MOTION_INTENSITY 4, VISUAL_DENSITY 6.
+Dials: DESIGN_VARIANCE = 6, MOTION_INTENSITY = 2, VISUAL_DENSITY = 5.
+The memorable element is the Research Lab scenario plot, where a prediction and its 90% interval move while the training range stays visible.
 
-## Colour logic (the rule the whole app follows)
-| Meaning | Token | Light | Dark |
+## 2. Color palette and roles
+| Role | Name | Light | Dark | Use |
+|---|---|---|---|---|
+| base | Field paper | `--background` | `--background` | App canvas |
+| surface | Paper | `--card` | `--card` | Inputs, chart tooltips, focused panels |
+| text | Field ink | `--foreground` | `--foreground` | Body and headings |
+| muted | Pencil | `--muted-foreground` | `--muted-foreground` | Supporting copy, labels, axes |
+| accent | Measured soil | `--accent` | `--accent` | Observed values only |
+| model | Model blue | `--model` | `--model` | Generated/predicted values only |
+| status | Green / amber / red | `--good` / `--warn` / `--bad` | same roles | Always pair status with a word and icon |
+
+Keep the palette already defined in `src/app/globals.css`. Do not add a second accent or use status colors to label chart series. Check contrast on actual text before adding a color.
+
+## 3. Typography
+| Role | Family | Weight | Notes |
 |---|---|---|---|
-| Structure and actions | ink (`--primary`) | #17231c | #ece8dc |
-| Measured by a sensor or observed in data | soil (`--observed`) | #7a4f2d | #d9a066 |
-| Said by a model | model blue (`--model`) | #2a78d6 (text #1c5cab) | #6da7ec |
-| Good / watch / alert | `--good` `--warn` `--bad` | #2d7a4d #a86a00 #b83a28 | #6fbf8e #e0a63c #ec7f6c |
-| Page / surface | `--background` `--card` | #edefe7 / #f9faf5 | #12100c / #1a1712 |
+| Display | Bricolage Grotesque Variable | 600–700 | Short editorial headlines, tight tracking |
+| Body and data | Public Sans Variable | 400–600 | Reading, controls and tabular figures |
+| Indic scripts | Platform fallback | normal | Keep native script readable; do not force Latin faces |
 
-Observed is always soil brown. Predicted is always model blue. Status colours never carry a series and always ship with an icon and a word.
-Crop series (prices): wheat #eda100, rice #1baf7a, cotton #e87ba4, maize #eb6834. Validated with the dataviz script (adjacent CVD 9.1, normal-vision 19.6); contrast relief given by direct labels and a table view.
+These faces have a humanist editorial tone while keeping measurements highly legible. Body copy should stay near 65–75 characters per line. Use tabular numerals for comparable values.
 
-## Type
-- Headings: Bricolage Grotesque (variable). Body and numbers: Public Sans (variable), tabular figures everywhere numbers line up.
-- Indic scripts fall back to the system fonts (Noto Sans Devanagari, Gurmukhi, Tamil, Telugu, Kannada, Bengali, Gujarati).
-- No monospace for labels, no all-caps eyebrows, no numbered markers unless the content is a sequence.
+## 4. Components
+- Primary action: compact ink-filled button, 44px minimum height, explicit outcome label.
+- Secondary action: text link with underline and a clear focus ring.
+- Navigation: current page uses a filled ink row; other links gain a tonal hover state. Prototype tools are in a named, expandable group.
+- Panels: use spacing and rules first. Reserve surfaces for chart controls, interactive containers and focused data relationships.
+- Data status: use words such as Synthetic, Sample data and Simulated. Never imply a physical sensor or feed is connected when it is not.
+- Focus, hover, active, disabled and error states must remain visible in both themes.
 
-## Layout
-- Light theme by default (readable in sunlight and on a projector), dark theme kept via the existing toggle.
-- Every page starts with a data status strip: what is live, simulated, sample or synthetic.
-- Figures are captioned like a paper: what it shows, source, n, caveat.
-- Home is a field brief: one sentence computed from the data, then bullet-chart rows (value against target band), not a grid of icon cards.
+## 5. Layout
+Use a 252px desktop navigation rail and a fluid content area capped at 1480px. The research hierarchy leads; farm tools stay one level below and carry a Demo label. Mobile uses a 5-item bottom navigation with safe-area padding and content padding beneath it. Prefer left-aligned editorial grids, ruled lists, and aligned data tables over repeated cards.
 
-## Motion (LottieFiles motion-design rules)
-Personality: calm and clear. One easing `cubic-bezier(.2,0,0,1)`, durations 150 / 280 / 600 ms. Entrances decelerate, exits accelerate. Hover under 100 ms, press under 150 ms. Stagger under 500 ms total. One orchestrated moment per page (markers settle to their values, lines draw once). No page-wide fade-up. Reduced motion switches it all off.
+Spacing steps: 4, 8, 12, 16, 24, 32, 48, 64, 80. Use one-pixel rules for structure. Controls and touch targets are at least 44px on mobile.
 
-## Anti-defaults we rejected
-Mint on near-black; tinted icon boxes in every card; blurred glow blobs; uppercase mono eyebrows; four equal stat cards; emoji as icons; a greeting hero.
+## 6. Depth and elevation
+Use paper/ink tonal contrast and thin, hue-matched rules. Keep charts and figures on the page surface. Use no floating badges over imagery, generic shadows, or nested cards. Small control radii are 4–6px; avoid pill-shaped UI except where native behavior calls for it.
+
+## 7. Do and do not
+**Do:** keep generated, measured, sample and live data distinct; include units, sample sizes and caveats beside charts; give each route one clear job; link to official farmer resources for real decisions.
+
+**Do not:** present synthetic research as biological proof; imply demo sensor controls operate hardware; use fake map/sensor feeds as proof; add purple AI gradients, tinted icon tiles everywhere, emoji icons, generic agritech claims or unlabelled sample prices.
+
+## 8. Responsive behavior
+At tablet widths, keep the side rail readable and collapse content columns before shrinking labels. At mobile widths, stack hero text before its chart, keep tables scrollable with their headers available, and reserve the bottom safe area for navigation. Check 390, 768, 1280 and 1440px. Honor reduced motion and never hide keyboard focus beneath the sticky header.
+
+## 9. Agent prompt guide
+Use existing tokens in `src/app/globals.css`; do not add raw colors or a parallel component theme. Keep copy specific and calm. Label every data source near the figure that uses it. Prefer native links, buttons, labels and tables. On every new screen, verify keyboard access, long content, empty/error states, contrast, mobile layout and reduced motion.
+
+## Inspiration used
+- OneSoil: take field-level context and workflows grouped around what needs attention. Reject satellite evidence and recommendation claims that this project does not have.
+- Plantix: take the short route from a farmer question to diagnosis or help. Reject treatment guarantees and marketing-first home screens.
+- John Deere Operations Center: take clear separation between planning, monitoring and analysis. Reject machinery-heavy density and any implied live telemetry.

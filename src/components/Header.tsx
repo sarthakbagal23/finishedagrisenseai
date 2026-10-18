@@ -1,40 +1,78 @@
 "use client";
 
-import { Bell, MapPin, Leaf, Sun, Moon } from 'lucide-react';
-import { useSensors } from '@/context/SensorContext';
-import { useTheme } from '@/context/ThemeContext';
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { Bell, ChevronRight, MapPin, Moon, Sun } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useSensors } from "@/context/SensorContext";
+import { useTheme } from "@/context/ThemeContext";
+
+const TITLES: Record<string, string> = {
+  "/": "Project story",
+  "/dataset": "Dataset",
+  "/findings": "Findings",
+  "/resources": "Farmer resources",
+  "/methods": "Methods & limits",
+  "/research": "Research Lab",
+  "/field": "Field dashboard",
+  "/advisor": "Farm advisor",
+  "/sensors": "Soil readings",
+  "/weather": "Weather",
+  "/diagnosis": "Crop diagnosis",
+  "/prices": "Market prices",
+  "/journal": "Field journal",
+  "/education": "Learning library",
+  "/schemes": "Schemes & services",
+  "/services": "Farm services",
+  "/subscription": "Plan & access",
+  "/settings": "Settings",
+  "/more": "More tools",
+  "/offline": "You're offline",
+};
+
+const PROTOTYPE_ROUTES = ["/field", "/advisor", "/sensors", "/weather", "/diagnosis", "/prices", "/journal", "/education", "/schemes", "/services", "/subscription"];
 
 export function Header() {
-  const { settings, t } = useSensors();
+  const pathname = usePathname();
+  const { settings } = useSensors();
   const { theme, toggleTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
-  if (!mounted) return <div className="h-14 border-b border-border" />;
-
-  const btn = "w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors duration-100";
+  const title = TITLES[pathname] ?? "AgriSense AI";
+  const prototype = PROTOTYPE_ROUTES.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 
   return (
-    <header className="sticky top-0 z-40 bg-background border-b border-border">
-      <div className="flex items-center justify-between px-4 md:px-8 h-14 max-w-6xl mx-auto">
-        <div className="flex items-center gap-3 min-w-0">
-          <Leaf className="md:hidden w-5 h-5 text-accent shrink-0" aria-hidden />
-          <div className="min-w-0">
-            <h1 className="font-display text-base font-bold leading-tight truncate">{t('header_title')}</h1>
-            <p className="flex items-center gap-1 text-xs text-muted-foreground truncate">
-              <MapPin className="w-3 h-3 shrink-0" aria-hidden />
-              <span className="num truncate">{settings.cropType} · {settings.location.split(',')[0]}</span>
-            </p>
+    <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
+      <div className="flex h-[62px] items-center justify-between gap-4 px-4 md:px-7">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="hidden sm:inline">AgriSense AI</span>
+            <ChevronRight className="hidden h-3 w-3 sm:block" aria-hidden />
+            <span className="truncate">{prototype ? "Farm tools · demo" : "Research project"}</span>
           </div>
+          <h1 className="mt-0.5 truncate font-display text-[15px] font-semibold leading-tight tracking-[-0.01em]">{title}</h1>
         </div>
-        <div className="flex items-center">
-          <button onClick={toggleTheme} className={btn} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>
-            {theme === 'dark' ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+
+        <div className="flex shrink-0 items-center gap-1">
+          {prototype && (
+            <div className="hidden items-center gap-1.5 border-r border-border pr-3 mr-1 text-xs text-muted-foreground sm:flex">
+              <MapPin className="h-3.5 w-3.5" aria-hidden />
+              <span className="max-w-36 truncate">{settings.location.split(",")[0]}</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            title={theme === "dark" ? "Light theme" : "Dark theme"}
+          >
+            {theme === "dark" ? <Sun className="h-[18px] w-[18px]" aria-hidden /> : <Moon className="h-[18px] w-[18px]" aria-hidden />}
           </button>
-          <Link href="/settings" className={btn} aria-label="Notifications and settings">
-            <Bell className="w-[18px] h-[18px]" />
+          <Link
+            href="/settings"
+            aria-label="Open settings and notifications"
+            title="Settings"
+            className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Bell className="h-[18px] w-[18px]" aria-hidden />
           </Link>
         </div>
       </div>

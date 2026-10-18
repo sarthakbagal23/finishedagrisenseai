@@ -21,6 +21,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const initialTheme = savedTheme || systemTheme;
     setTheme(initialTheme);
     document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', initialTheme === 'dark' ? '#12120f' : '#f4f3eb');
     setMounted(true);
   }, []);
 
@@ -29,6 +30,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme(newTheme);
     localStorage.setItem('agrisense_theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', newTheme === 'dark' ? '#12120f' : '#f4f3eb');
   };
 
   return (

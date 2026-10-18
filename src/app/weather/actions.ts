@@ -1,98 +1,175 @@
 "use server";
 
-export interface WeatherData {
-    current: {
-        temp: number;
-        cond: string;
-        icon: string;
-        low: number;
-        rain: string;
-        humidity: number;
-        wind: number;
-        visibility: number;
-    };
-    daily: Array<{
-        day: string;
-        icon: string;
-        temp: number;
-        low: number;
-        rain: string;
-        cond: string;
-        isIdeal: boolean;
-    }>;
+import { z } from 'zod';
+
+export interface WeatherDay {
+  date: string;
+  day: string;
+  icon: string;
+  high: number;
+  low: number;
+  rainChance: number;
+  rainMm: number;
+  et0Mm: number | null;
+  condition: string;
 }
 
-const CONDITION_MAP: Record<number, { cond: string; icon: string }> = {
-    0: { cond: 'Clear sky', icon: '☀️' },
-    1: { cond: 'Mainly clear', icon: '☀️' },
-    2: { cond: 'Partly cloudy', icon: '⛅' },
-    3: { cond: 'Overcast', icon: '☁️' },
-    45: { cond: 'Fog', icon: '🌫️' },
-    48: { cond: 'Depositing rime fog', icon: '🌫️' },
-    51: { cond: 'Light drizzle', icon: '🌦️' },
-    53: { cond: 'Moderate drizzle', icon: '🌦️' },
-    55: { cond: 'Dense drizzle', icon: '🌦️' },
-    61: { cond: 'Slight rain', icon: '🌧️' },
-    63: { cond: 'Moderate rain', icon: '🌧️' },
-    65: { cond: 'Heavy rain', icon: '🌧️' },
-    71: { cond: 'Slight snow fall', icon: '❄️' },
-    73: { cond: 'Moderate snow fall', icon: '❄️' },
-    75: { cond: 'Heavy snow fall', icon: '❄️' },
-    80: { cond: 'Slight rain showers', icon: '🌧️' },
-    81: { cond: 'Moderate rain showers', icon: '🌧️' },
-    82: { cond: 'Violent rain showers', icon: '🌧️' },
-    95: { cond: 'Thunderstorm', icon: '⛈️' },
+export interface WeatherData {
+  location: string;
+  updatedAt: string;
+  current: {
+    temp: number;
+    condition: string;
+    icon: string;
+    humidity: number;
+    windKmh: number;
+    visibilityKm: number | null;
+  };
+  daily: WeatherDay[];
+}
+
+const GeocodingSchema = z.object({
+  results: z.array(z.object({
+    name: z.string(),
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    country: z.string().optional(),
+    admin1: z.string().optional(),
+  })).optional(),
+});
+
+const ForecastSchema = z.object({
+  current: z.object({
+    time: z.string(),
+    temperature_2m: z.number(),
+    relative_humidity_2m: z.number().min(0).max(100),
+    weather_code: z.number(),
+    wind_speed_10m: z.number().nonnegative(),
+    visibility: z.number().nonnegative().optional(),
+  }),
+  daily: z.object({
+    time: z.array(z.string()).min(1).max(7),
+    weather_code: z.array(z.number()),
+    temperature_2m_max: z.array(z.number()),
+    temperature_2m_min: z.array(z.number()),
+    precipitation_probability_max: z.array(z.number().min(0).max(100).nullable()),
+    precipitation_sum: z.array(z.number().nonnegative()),
+    et0_fao_evapotranspiration: z.array(z.number().nonnegative()).optional(),
+  }),
+  timezone: z.string(),
+  current_weather_units: z.object({}).optional(),
+}).passthrough();
+
+const WEATHER_CODES: Record<number, { condition: string; icon: string }> = {
+  0: { condition: 'Clear sky', icon: '☀️' },
+  1: { condition: 'Mainly clear', icon: '🌤️' },
+  2: { condition: 'Partly cloudy', icon: '⛅' },
+  3: { condition: 'Overcast', icon: '☁️' },
+  45: { condition: 'Fog', icon: '🌫️' },
+  48: { condition: 'Rime fog', icon: '🌫️' },
+  51: { condition: 'Light drizzle', icon: '🌦️' },
+  53: { condition: 'Drizzle', icon: '🌦️' },
+  55: { condition: 'Dense drizzle', icon: '🌧️' },
+  56: { condition: 'Freezing drizzle', icon: '🌧️' },
+  57: { condition: 'Heavy freezing drizzle', icon: '🌧️' },
+  61: { condition: 'Light rain', icon: '🌧️' },
+  63: { condition: 'Rain', icon: '🌧️' },
+  65: { condition: 'Heavy rain', icon: '🌧️' },
+  66: { condition: 'Freezing rain', icon: '🌧️' },
+  67: { condition: 'Heavy freezing rain', icon: '🌧️' },
+  71: { condition: 'Light snow', icon: '🌨️' },
+  73: { condition: 'Snow', icon: '🌨️' },
+  75: { condition: 'Heavy snow', icon: '❄️' },
+  77: { condition: 'Snow grains', icon: '❄️' },
+  80: { condition: 'Light showers', icon: '🌦️' },
+  81: { condition: 'Showers', icon: '🌧️' },
+  82: { condition: 'Heavy showers', icon: '🌧️' },
+  85: { condition: 'Snow showers', icon: '🌨️' },
+  86: { condition: 'Heavy snow showers', icon: '❄️' },
+  95: { condition: 'Thunderstorm', icon: '⛈️' },
+  96: { condition: 'Thunderstorm with hail', icon: '⛈️' },
+  99: { condition: 'Heavy thunderstorm with hail', icon: '⛈️' },
 };
 
-export async function getWeatherForecast(location: string): Promise<WeatherData> {
-    // Simple heuristic for Chandigarh lat/long if matches exactly (default)
-    // In a real app, use a geocoding API.
-    let lat = 30.7333;
-    let lon = 76.7794;
+function getWeatherCode(code: number) {
+  return WEATHER_CODES[code] ?? { condition: 'Conditions unavailable', icon: '—' };
+}
 
-    if (location.toLowerCase().includes('chandigarh')) {
-        lat = 30.7333;
-        lon = 76.7794;
-    }
+function requireOk(response: Response, label: string) {
+  if (!response.ok) throw new Error(`${label} unavailable`);
+}
 
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=auto`;
+export async function getWeatherForecast(locationInput: string): Promise<WeatherData> {
+  const query = locationInput.trim().slice(0, 100);
+  if (query.length < 2) throw new Error('Add a town or district in farm settings to view the forecast.');
 
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to fetch weather data');
-    const data = await res.json();
+  const geoUrl = new URL('https://geocoding-api.open-meteo.com/v1/search');
+  geoUrl.search = new URLSearchParams({ name: query, count: '1', language: 'en', format: 'json', countryCode: 'IN' }).toString();
+  const geoResponse = await fetch(geoUrl, { signal: AbortSignal.timeout(8_000), next: { revalidate: 86_400 } });
+  requireOk(geoResponse, 'Location lookup');
+  const geocoding = GeocodingSchema.safeParse(await geoResponse.json());
+  const place = geocoding.success ? geocoding.data.results?.[0] : undefined;
+  if (!place) throw new Error(`No forecast location found for “${query}”. Update your town or district in settings.`);
 
-    const currentCode = data.current_weather.weathercode;
-    const current = {
-        temp: Math.round(data.current_weather.temperature),
-        cond: CONDITION_MAP[currentCode]?.cond || 'Clear',
-        icon: CONDITION_MAP[currentCode]?.icon || '☀️',
-        low: Math.round(data.daily.temperature_2m_min[0]),
-        rain: `${data.daily.precipitation_probability_max[0]}%`,
-        humidity: 55, // Open-Meteo current_weather doesn't include relative humidity unless requested in hourly
-        wind: Math.round(data.current_weather.windspeed),
-        visibility: 10,
+  const forecastUrl = new URL('https://api.open-meteo.com/v1/forecast');
+  forecastUrl.search = new URLSearchParams({
+    latitude: String(place.latitude),
+    longitude: String(place.longitude),
+    current: 'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,visibility',
+    daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,et0_fao_evapotranspiration',
+    forecast_days: '7',
+    timezone: 'auto',
+    wind_speed_unit: 'kmh',
+  }).toString();
+  const forecastResponse = await fetch(forecastUrl, { signal: AbortSignal.timeout(8_000), next: { revalidate: 900 } });
+  requireOk(forecastResponse, 'Weather forecast');
+  const forecast = ForecastSchema.safeParse(await forecastResponse.json());
+  if (!forecast.success) throw new Error('The weather provider returned incomplete data. Try again shortly.');
+
+  const { current, daily, timezone } = forecast.data;
+  const seriesLength = Math.min(
+    daily.time.length,
+    daily.weather_code.length,
+    daily.temperature_2m_max.length,
+    daily.temperature_2m_min.length,
+    daily.precipitation_probability_max.length,
+    daily.precipitation_sum.length,
+  );
+  if (seriesLength < 1) throw new Error('No forecast days are available for this location.');
+
+  const today = daily.time[0];
+  const fmt = new Intl.DateTimeFormat('en-IN', { timeZone: timezone, weekday: 'short', month: 'short', day: 'numeric' });
+  const dailyItems: WeatherDay[] = Array.from({ length: seriesLength }, (_, index) => {
+    const code = getWeatherCode(daily.weather_code[index]);
+    const date = daily.time[index];
+    const dayLabel = index === 0 ? 'Today' : index === 1 ? 'Tomorrow' : fmt.format(new Date(`${date}T12:00:00Z`));
+    return {
+      date,
+      day: dayLabel,
+      icon: code.icon,
+      condition: code.condition,
+      high: Math.round(daily.temperature_2m_max[index]),
+      low: Math.round(daily.temperature_2m_min[index]),
+      rainChance: daily.precipitation_probability_max[index] ?? 0,
+      rainMm: Math.round(daily.precipitation_sum[index] * 10) / 10,
+      et0Mm: daily.et0_fao_evapotranspiration?.[index] == null
+        ? null
+        : Math.round(daily.et0_fao_evapotranspiration[index] * 10) / 10,
     };
+  });
 
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const today = new Date();
-
-    const daily = data.daily.time.map((time: string, i: number) => {
-        const d = new Date(time);
-        const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
-        const code = data.daily.weathercode[i];
-        const condition = CONDITION_MAP[code] || { cond: 'Clear', icon: '☀️' };
-
-        return {
-            day: label,
-            icon: condition.icon,
-            temp: Math.round(data.daily.temperature_2m_max[i]),
-            low: Math.round(data.daily.temperature_2m_min[i]),
-            rain: `${data.daily.precipitation_probability_max[i]}%`,
-            cond: condition.cond,
-            isIdeal: condition.cond.includes('Clear') || condition.cond.includes('Mainly clear'),
-        };
-    });
-
-    return { current, daily };
+  const currentCode = getWeatherCode(current.weather_code);
+  return {
+    location: [place.name, place.admin1, place.country].filter(Boolean).join(', '),
+    updatedAt: new Date().toISOString(),
+    current: {
+      temp: Math.round(current.temperature_2m),
+      condition: currentCode.condition,
+      icon: currentCode.icon,
+      humidity: Math.round(current.relative_humidity_2m),
+      windKmh: Math.round(current.wind_speed_10m),
+      visibilityKm: current.visibility == null ? null : Math.round((current.visibility / 1000) * 10) / 10,
+    },
+    daily: dailyItems,
+  };
 }

@@ -1,309 +1,271 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, RefreshCw, User, Bot, Sparkles, WifiOff, AlertTriangle, ArrowUp } from 'lucide-react';
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { ArrowDown, ArrowUp, BookOpen, Bot, CloudSun, ExternalLink, Leaf, LoaderCircle, MapPin, RotateCcw, ShieldCheck, Sparkles, Sprout, Wheat } from 'lucide-react';
 import { useSensors } from '@/context/SensorContext';
-import { getPersonalizedRecommendations, askFarmingQuestion } from './actions';
-import { getOfflineChatResponse, getOfflineRecommendations, isOffline } from '@/lib/offlineAI';
-import type { GeneratePersonalizedRecommendationsOutput } from '@/ai/flows/generate-personalized-recommendations';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+
+type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 const languageNames: Record<string, string> = {
   en: 'English', hi: 'Hindi', pb: 'Punjabi', ta: 'Tamil',
   te: 'Telugu', mr: 'Marathi', kn: 'Kannada', bn: 'Bengali', gu: 'Gujarati',
 };
 
-const stagger = {
-  container: { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } },
-  item: { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } } },
-} as const;
+const stages = ['Not sure yet', 'Sowing / transplanting', 'Vegetative growth', 'Flowering / fruiting', 'Harvest / storage'] as const;
 
-const priorityConfig = {
-  High: { color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/25', dot: 'bg-destructive' },
-  Medium: { color: 'text-primary', bg: 'bg-primary/10 border-primary/25', dot: 'bg-primary' },
-  Low: { color: 'text-sage', bg: 'bg-sage/10 border-sage/25', dot: 'bg-sage' },
-};
+const starters = [
+  { icon: CloudSun, title: 'Plan around the weather', prompt: 'What should I check before planning irrigation or field work this week?' },
+  { icon: Leaf, title: 'Understand a crop symptom', prompt: 'My crop has a problem. Ask me what details you need before suggesting next steps.' },
+  { icon: ShieldCheck, title: 'Check before spraying', prompt: 'What should I verify before deciding whether a pesticide is needed?' },
+  { icon: Wheat, title: 'Prepare for harvest', prompt: 'Help me make a practical pre-harvest checklist for this crop.' },
+];
 
 export default function AIAdvisor() {
-  const { sensors, settings, t } = useSensors();
-  const [recommendations, setRecommendations] = useState<GeneratePersonalizedRecommendationsOutput>([]);
-  const [loadingRecs, setLoadingRecs] = useState(false);
-  const [offline, setOffline] = useState(false);
-  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([
-    { role: 'bot', text: 'Hello! I am your AgriSense advisor. How can I help you with your farm today?' }
-  ]);
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
-
-  const getSafeIcon = (icon: string) => {
-    const safeIcons = ['🌾', '🚜', '🌱', '💧', '☀️', '📈', '🛡️', '⚡', '🧪', '💡', '🌡️', '🚿'];
-    const match = safeIcons.find(safe => icon?.trim().startsWith(safe));
-    return match ?? '💡';
-  };
+  const { settings } = useSensors();
+  const [cropStage, setCropStage] = useState<(typeof stages)[number]>(stages[0]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [draft, setDraft] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
+  const [online, setOnline] = useState(true);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const language = languageNames[settings.language] ?? 'English';
 
   useEffect(() => {
-    setMounted(true);
-    setOffline(isOffline());
-    const handleOnline = () => setOffline(false);
-    const handleOffline = () => setOffline(true);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    handleRefreshRecs();
+    setOnline(navigator.onLine);
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
     };
   }, []);
 
-  const handleRefreshRecs = async () => {
-    setLoadingRecs(true);
-    try {
-      if (isOffline()) {
-        const result = getOfflineRecommendations(
-          sensors.soilMoisture, sensors.soilTemperature, sensors.soilPh, sensors.nutrientLevel, settings.cropType
-        );
-        setRecommendations(result);
-        setOffline(true);
-      } else {
-        const result = await getPersonalizedRecommendations({
-          soilMoisture: sensors.soilMoisture,
-          soilTemperature: sensors.soilTemperature,
-          soilPh: sensors.soilPh,
-          nutrientLevel: sensors.nutrientLevel,
-          weatherForecast: 'Mostly sunny for the next 3 days.',
-          cropType: settings.cropType,
-          location: settings.location,
-          language: languageNames[settings.language],
-        });
-        setRecommendations(result);
-      }
-    } catch (error) {
-      const result = getOfflineRecommendations(
-        sensors.soilMoisture, sensors.soilTemperature, sensors.soilPh, sensors.nutrientLevel, settings.cropType
-      );
-      setRecommendations(result);
-      setOffline(true);
-    } finally {
-      setLoadingRecs(false);
-    }
-  };
-
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
-    const userMsg = inputValue.trim();
-    setChatMessages(prev => [...prev, { role: 'user', text: userMsg }]);
-    setInputValue('');
-    setIsTyping(true);
-
-    try {
-      if (isOffline()) {
-        await new Promise(r => setTimeout(r, 900 + Math.random() * 600));
-        const answer = getOfflineChatResponse(userMsg);
-        setChatMessages(prev => [...prev, { role: 'bot', text: answer }]);
-      } else {
-        const response = await askFarmingQuestion({
-          question: userMsg,
-          language: languageNames[settings.language]
-        });
-        setChatMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
-      }
-    } catch (error) {
-      await new Promise(r => setTimeout(r, 600));
-      const answer = getOfflineChatResponse(userMsg);
-      setChatMessages(prev => [...prev, { role: 'bot', text: answer }]);
-      setOffline(true);
-    } finally {
-      setIsTyping(false);
-    }
-  };
-
   useEffect(() => {
-    if (scrollRef.current) {
-      const scrollElement = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollElement) scrollElement.scrollTop = scrollElement.scrollHeight;
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages, loading]);
+
+  async function sendQuestion(question: string, retry = false) {
+    const trimmed = question.trim();
+    if (!trimmed || loading) return;
+
+    const conversation = retry ? messages : [...messages, { role: 'user' as const, content: trimmed }];
+    if (!retry) setMessages(conversation);
+    setDraft('');
+    setError(null);
+    setFailedQuestion(null);
+
+    if (!navigator.onLine) {
+      setError('You are offline. Your question is still here; reconnect and retry when you are ready.');
+      setFailedQuestion(trimmed);
+      return;
     }
-  }, [chatMessages, isTyping]);
 
-  if (!mounted) return null;
+    setLoading(true);
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: conversation.slice(-8),
+          crop: settings.cropType,
+          location: settings.location,
+          cropStage,
+          language,
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error?.message || 'The advisor could not answer right now.');
+      }
+      if (typeof payload?.answer !== 'string' || !payload.answer.trim()) {
+        throw new Error('The advisor returned an empty reply. Try again.');
+      }
+      setMessages(previous => [...previous, { role: 'assistant', content: payload.answer }]);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The advisor could not be reached. Try again.');
+      setFailedQuestion(trimmed);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  // Sort by priority: High first
-  const sortedRecs = [...recommendations].sort((a, b) => {
-    const order: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
-    return (order[a.priority] ?? 9) - (order[b.priority] ?? 9);
-  });
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void sendQuestion(draft);
+  }
+
+  function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      void sendQuestion(draft);
+    }
+  }
 
   return (
-    <motion.div
-      className="space-y-6"
-      variants={stagger.container}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Header */}
-      <motion.div variants={stagger.item} className="flex items-center gap-3 px-1">
-        <div className="bg-primary/10 border border-primary/20 p-2.5 rounded-xl">
-          <Sparkles className="w-5 h-5 text-primary" />
-        </div>
-        <div className="flex-1">
-          <h2 className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground">{t('advisor_title')}</h2>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">
-            {languageNames[settings.language]} · {offline ? 'Demo Mode' : 'Live AI'}
+    <div className="space-y-7 md:space-y-9">
+      <header className="relative overflow-hidden rounded-2xl border border-border bg-card px-5 py-6 md:px-8 md:py-8">
+        <div aria-hidden className="absolute -right-12 -top-20 h-64 w-64 rounded-full border border-model/15" />
+        <div aria-hidden className="absolute -right-1 -top-9 h-44 w-44 rounded-full border border-model/20" />
+        <div className="relative max-w-3xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-model/25 bg-model/10 px-3 py-1 text-xs font-medium text-model">
+            <Sparkles className="h-3.5 w-3.5" /> Groq-powered farm advisor
+          </div>
+          <h2 className="mt-4 max-w-2xl font-display text-3xl font-semibold leading-tight tracking-tight text-foreground md:text-4xl">
+            A clearer next step for your field.
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
+            Ask a practical question. The advisor uses your crop profile and growth stage, then asks for missing details instead of guessing.
           </p>
         </div>
-        <Button
-          onClick={handleRefreshRecs}
-          variant="ghost" size="sm"
-          className="h-9 gap-2 rounded-lg text-primary hover:bg-primary/10 transition-colors"
-          disabled={loadingRecs}
-        >
-          <RefreshCw className={cn("w-4 h-4", loadingRecs && "animate-spin")} />
-          {t('common_refresh')}
-        </Button>
-      </motion.div>
+      </header>
 
-      {/* Offline banner */}
-      {offline && (
-        <motion.div variants={stagger.item} className="flex items-center gap-2.5 bg-muted/50 border border-border/50 px-4 py-3 rounded-xl">
-          <WifiOff className="w-4 h-4 text-muted-foreground shrink-0" />
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">
-            Offline — smart demo AI active
-          </p>
-        </motion.div>
-      )}
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]">
+        <section aria-label="Farm advisor chat" className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 md:px-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-model/10 text-model">
+                <Bot className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Field conversation</h3>
+                <p className="text-xs text-muted-foreground">Replies in {language} · {online ? 'Connected' : 'Offline'}</p>
+              </div>
+            </div>
+            {messages.length > 0 && (
+              <Button variant="ghost" size="sm" className="min-h-10 gap-2" onClick={() => { setMessages([]); setError(null); setFailedQuestion(null); }}>
+                <RotateCcw className="h-4 w-4" /> New chat
+              </Button>
+            )}
+          </div>
 
-      {/* ═══ AI Recommendations Feed ═══ */}
-      <motion.section variants={stagger.item} className="space-y-3">
-        {loadingRecs ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="bg-card/80 border border-border/50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="skeleton w-10 h-10 rounded-lg" />
-                  <div className="flex-1 space-y-2">
-                    <div className="skeleton h-4 w-2/3" />
-                    <div className="skeleton h-3 w-full" />
+          <div className="max-h-[min(58vh,620px)] min-h-[340px] overflow-y-auto px-4 py-5 md:px-6" aria-live="polite" aria-relevant="additions text">
+            {messages.length === 0 ? (
+              <div className="flex min-h-[300px] flex-col justify-center">
+                <div className="mb-5 flex items-start gap-3">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-model/10 text-model"><Bot className="h-4 w-4" /></div>
+                  <div className="max-w-xl rounded-2xl rounded-tl-sm border border-border bg-background px-4 py-3 text-sm leading-6 text-foreground">
+                    Tell me what you are trying to decide. If timing or treatment depends on local conditions, I will ask before recommending a step.
                   </div>
+                </div>
+                <p className="mb-3 ml-11 text-xs font-medium text-muted-foreground">A few useful starting points</p>
+                <div className="grid gap-2 sm:grid-cols-2 sm:pl-11">
+                  {starters.map(({ icon: Icon, title, prompt }) => (
+                    <button key={title} type="button" onClick={() => void sendQuestion(prompt)} disabled={loading}
+                      className="group flex min-h-[72px] items-center gap-3 rounded-xl border border-border bg-background px-3.5 py-3 text-left transition-colors hover:border-model/40 hover:bg-model/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <Icon className="h-4 w-4 shrink-0 text-model transition-transform group-hover:scale-110" />
+                      <span className="text-sm font-medium text-foreground">{title}</span>
+                      <ArrowUp className="ml-auto h-3.5 w-3.5 -rotate-45 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                    </button>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        ) : sortedRecs.length > 0 ? (
-          sortedRecs.map((rec, i) => {
-            const prio = priorityConfig[rec.priority as keyof typeof priorityConfig] || priorityConfig.Low;
-            return (
-              <motion.div
-                key={i}
-                variants={stagger.item}
-                whileHover={{ y: -1, transition: { duration: 0.15 } }}
-              >
-                <Card className="border border-border/50 bg-card/80 rounded-xl group hover:border-primary/20 transition-all">
-                  <CardContent className="p-4 flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0 grayscale group-hover:grayscale-0 transition-all mt-0.5">
-                      {getSafeIcon(rec.icon)}
+            ) : (
+              <div className="space-y-5">
+                {messages.map((message, index) => (
+                  <div key={`${index}-${message.role}`} className={cn('flex gap-3', message.role === 'user' && 'flex-row-reverse')}>
+                    <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-model/10 text-model')}>
+                      {message.role === 'user' ? <Sprout className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                     </div>
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="font-semibold text-sm text-foreground tracking-tight truncate">{rec.title}</h3>
-                        <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-wider px-2 py-0 rounded-md shrink-0 border", prio.bg, prio.color)}>
-                          <span className={cn("w-1.5 h-1.5 rounded-full mr-1.5", prio.dot)} />
-                          {rec.priority}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed font-medium">{rec.action}</p>
+                    <div className={cn('max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6', message.role === 'user' ? 'rounded-tr-sm bg-primary text-primary-foreground' : 'rounded-tl-sm border border-border bg-background text-foreground')}>
+                      <p className="whitespace-pre-wrap">{message.content}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })
-        ) : (
-          <div className="text-center py-10 border border-dashed border-border/50 rounded-xl bg-muted/10">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3">
-              <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-            </div>
-            <p className="text-sm font-display font-semibold text-foreground">{t('common_loading')}</p>
-            <p className="text-xs text-muted-foreground mt-1">Generating personalized recommendations...</p>
+                  </div>
+                ))}
+                {loading && (
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground" role="status">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-model/10 text-model"><LoaderCircle className="h-4 w-4 animate-spin" /></span>
+                    Thinking through the field context…
+                  </div>
+                )}
+                <div ref={bottomRef} />
+              </div>
+            )}
           </div>
-        )}
-      </motion.section>
 
-      {/* ═══ Chat — Forest/Gold Aesthetic ═══ */}
-      <motion.section variants={stagger.item} className="space-y-3">
-        <div className="px-1">
-          <h3 className="font-display text-lg font-bold text-foreground tracking-tight">{t('advisor_chat_title')}</h3>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] mt-0.5">
-            {offline ? 'Smart demo mode active' : `Speaking in ${languageNames[settings.language]}`}
-          </p>
-        </div>
-
-        <Card className="border border-border/50 bg-card/80 overflow-hidden flex flex-col h-[480px] rounded-2xl shadow-premium">
-          <ScrollArea className="flex-1 p-5" ref={scrollRef}>
-            <div className="space-y-4">
-              {chatMessages.map((msg, i) => (
-                <motion.div
-                  key={i}
-                  className={cn("flex gap-3", msg.role === 'user' ? "flex-row-reverse" : "")}
-                  initial={i > 0 ? { opacity: 0, y: 8 } : undefined}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border",
-                    msg.role === 'user' ? "bg-primary/15 text-primary border-primary/20" : "bg-muted/50 text-sage border-border/50"
-                  )}>
-                    {msg.role === 'user' ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
-                  </div>
-                  <div className={cn(
-                    "p-3.5 rounded-2xl text-sm max-w-[80%] leading-relaxed font-medium",
-                    msg.role === 'user'
-                      ? "bg-primary text-primary-foreground rounded-tr-sm"
-                      : "bg-muted/40 text-foreground rounded-tl-sm border border-border/50"
-                  )}>
-                    {msg.text}
-                  </div>
-                </motion.div>
-              ))}
-              {isTyping && (
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center shrink-0">
-                    <Bot className="w-3.5 h-3.5 text-sage" />
-                  </div>
-                  <div className="bg-muted/40 border border-border/50 p-3.5 rounded-2xl rounded-tl-sm text-xs flex gap-1.5 items-center">
-                    <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" />
-                    <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:0.4s]" />
-                  </div>
-                </div>
-              )}
+          {error && (
+            <div className="mx-4 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 md:mx-6" role="alert">
+              <p className="text-sm text-foreground">{error}</p>
+              {failedQuestion && <Button size="sm" variant="outline" className="min-h-10" onClick={() => void sendQuestion(failedQuestion, true)}>Retry</Button>}
             </div>
-          </ScrollArea>
+          )}
 
-          <div className="p-3 bg-background/60 border-t border-border/50 flex gap-2">
-            <Input
-              placeholder={offline ? "Ask about irrigation, pests, diseases..." : `${t('advisor_ask_placeholder')} ${languageNames[settings.language]}...`}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-              className="flex-1 border border-border/50 bg-muted/30 focus-visible:border-primary/50 focus-visible:ring-0 rounded-xl h-12 px-4 text-sm font-medium transition-colors"
-            />
-            <Button
-              size="icon"
-              onClick={handleSendMessage}
-              className="bg-primary hover:bg-primary/90 rounded-xl h-12 w-12 shrink-0 shadow-sm transition-colors"
-            >
-              <ArrowUp className="w-5 h-5" />
-            </Button>
+          <form onSubmit={submit} className="border-t border-border bg-background/70 p-3 md:p-4">
+            <label htmlFor="advisor-question" className="sr-only">Ask the farm advisor</label>
+            <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-2 shadow-sm transition-shadow focus-within:ring-2 focus-within:ring-ring/50">
+              <Textarea id="advisor-question" value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={handleComposerKeyDown}
+                maxLength={1_500} rows={2} placeholder="Ask about an observation or a decision…" disabled={loading}
+                className="max-h-32 min-h-11 resize-y border-0 bg-transparent shadow-none focus-visible:ring-0" />
+              <Button type="submit" size="icon" className="mb-0.5 h-10 w-10 shrink-0 rounded-lg" disabled={loading || !draft.trim()} aria-label="Send question">
+                {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div className="flex items-center justify-between gap-3 px-1 pt-2 text-[11px] text-muted-foreground">
+              <span>Enter to send · Shift + Enter for a new line</span>
+              <span>{draft.length}/1,500</span>
+            </div>
+          </form>
+        </section>
+
+        <aside className="space-y-4">
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your field brief</p>
+                <h3 className="mt-1 font-display text-xl font-semibold text-foreground">Make advice more relevant</h3>
+              </div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/50 text-foreground"><Sprout className="h-4 w-4" /></div>
+            </div>
+            <div className="mt-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground"><Wheat className="h-4 w-4" /></span>
+                <div className="min-w-0"><p className="text-[11px] text-muted-foreground">Crop</p><p className="truncate text-sm font-medium text-foreground">{settings.cropType}</p></div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground"><MapPin className="h-4 w-4" /></span>
+                <div className="min-w-0"><p className="text-[11px] text-muted-foreground">Farm area</p><p className="truncate text-sm font-medium text-foreground">{settings.location}</p></div>
+              </div>
+              <div>
+                <label htmlFor="crop-stage" className="mb-1.5 block text-[11px] text-muted-foreground">Growth stage</label>
+                <select id="crop-stage" value={cropStage} onChange={event => setCropStage(event.target.value as (typeof stages)[number])}
+                  className="min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {stages.map(stage => <option key={stage} value={stage}>{stage}</option>)}
+                </select>
+              </div>
+            </div>
+            <Link href="/settings" className="mt-4 inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-model underline-offset-4 hover:underline">Edit farm profile <ArrowDown className="h-3.5 w-3.5 -rotate-45" /></Link>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-model" /><h3 className="font-semibold text-foreground">Trusted field references</h3></div>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Check local bulletins when timing or treatment depends on current conditions.</p>
+            <div className="mt-3 divide-y divide-border">
+              <a className="flex min-h-12 items-center justify-between gap-3 py-2 text-sm font-medium hover:text-model" href="https://mausam.imd.gov.in/imd_latest/contents/agromet/advisory/englishstate_current.php" target="_blank" rel="noreferrer">
+                IMD agromet advisories <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              </a>
+              <a className="flex min-h-12 items-center justify-between gap-3 py-2 text-sm font-medium hover:text-model" href="https://www.icar.org.in/en/integrated-pest-management-sustainable-approach-responsible-pest-management" target="_blank" rel="noreferrer">
+                ICAR integrated pest management <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              </a>
+              <a className="flex min-h-12 items-center justify-between gap-3 py-2 text-sm font-medium hover:text-model" href="https://agmarknet.gov.in/" target="_blank" rel="noreferrer">
+                Agmarknet mandi prices <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              </a>
+            </div>
+          </section>
+
+          <div className="rounded-xl border border-border bg-muted/40 p-4">
+            <p className="text-xs leading-5 text-muted-foreground">
+              Your question, crop, location and stage are sent to Groq to generate a reply. Simulated sensor readings are not used. Avoid entering personal, financial or identity details.
+            </p>
+            <p className="mt-2 text-xs font-medium text-foreground">AI guidance can be wrong. Confirm high-impact decisions with your local KVK or extension officer.</p>
           </div>
-        </Card>
-      </motion.section>
-    </motion.div>
+        </aside>
+      </div>
+    </div>
   );
 }

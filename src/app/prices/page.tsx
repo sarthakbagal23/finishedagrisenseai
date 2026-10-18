@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { FigureCaption } from '@/components/viz/FigureCaption';
@@ -82,6 +81,10 @@ const trendKind = (s: string) => s === 'booming' ? { Icon: TrendingUp, word: 'Ri
 export default function MarketPrices() {
   const { settings, t } = useSensors();
   const [table, setTable] = useState(false);
+  const [area, setArea] = useState("");
+  const [yieldPerAcre, setYieldPerAcre] = useState("");
+  const [salePrice, setSalePrice] = useState("");
+  const [costPerAcre, setCostPerAcre] = useState("");
   const state = settings.location.split(', ')[1] || 'Punjab';
   const currentPrices = pricesByState[state] || pricesByState['Punjab'];
   const rising = trendingCrops.filter(c => c.status === 'booming').length;
@@ -210,26 +213,40 @@ export default function MarketPrices() {
           </table>
         </TabsContent>
 
-        <TabsContent value="profit" className="mt-8 space-y-8 max-w-2xl">
+        <TabsContent value="profit" className="mt-8 space-y-8 max-w-3xl">
           <div>
-            <h3 className="font-display text-lg font-bold">{t('prices_ai_calc')}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{t('prices_reco_desc')}</p>
-            <Button className="mt-4 min-h-11 px-6 font-semibold">{t('prices_gen_report')}</Button>
-          </div>
-          <div>
-            <h3 className="font-display text-lg font-bold border-b border-foreground pb-2">{t('prices_best_opp')}</h3>
-            <div className="divide-y divide-border">
-              <div className="py-4">
-                <h4 className="text-[15px] font-semibold">{t('prices_maize_switch' as any)}</h4>
-                <p className="text-sm text-muted-foreground mt-1">{t('prices_maize_desc' as any)}</p>
-                <p className="text-sm font-semibold mt-2 num">{t('prices_profit_acre' as any)}</p>
-              </div>
-              <div className="py-4">
-                <h4 className="text-[15px] font-semibold">{t('prices_cotton_hold' as any)}</h4>
-                <p className="text-sm text-muted-foreground mt-1">{t('prices_cotton_desc' as any)}</p>
-                <p className="text-sm font-semibold mt-2 num">{t('prices_cotton_proj' as any)}</p>
-              </div>
+            <h3 className="font-display text-lg font-bold">Your harvest estimate</h3>
+            <p className="text-sm text-muted-foreground mt-1">Enter your own yield, expected sale price and costs. This simple gross-margin estimate uses only your inputs; it does not use the example mandi prices above.</p>
+            <div className="grid gap-x-4 gap-y-3 mt-5 sm:grid-cols-2">
+              {[
+                { label: 'Farm area (acres)', value: area, set: setArea, min: '0.01', step: '0.01' },
+                { label: 'Expected yield (quintals per acre)', value: yieldPerAcre, set: setYieldPerAcre, min: '0', step: '0.1' },
+                { label: 'Expected sale price (₹ per quintal)', value: salePrice, set: setSalePrice, min: '0', step: '1' },
+                { label: 'Growing + harvest costs (₹ per acre)', value: costPerAcre, set: setCostPerAcre, min: '0', step: '100' },
+              ].map((field) => <label key={field.label} className="text-xs font-semibold text-muted-foreground">{field.label}<input type="number" min={field.min} step={field.step} value={field.value} onChange={(e) => field.set(e.target.value)} className="mt-1 block h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground" /></label>)}
             </div>
+            {area.trim() !== '' && yieldPerAcre.trim() !== '' && salePrice.trim() !== '' && costPerAcre.trim() !== '' && Number(yieldPerAcre) > 0 && Number(salePrice) > 0 && Number(costPerAcre) >= 0 && Number(area) > 0 ? (() => {
+              const gross = Number(area) * Number(yieldPerAcre) * Number(salePrice);
+              const costs = Number(area) * Number(costPerAcre);
+              const net = gross - costs;
+              const breakEven = Number(yieldPerAcre) > 0 ? Number(costPerAcre) / Number(yieldPerAcre) : 0;
+              const rupees = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+              return <div className="mt-5 grid gap-3 sm:grid-cols-3" aria-live="polite">
+                <div className="rounded-lg border border-border p-4"><p className="text-xs text-muted-foreground">Estimated gross revenue</p><p className="font-display text-xl font-bold mt-1 num">{rupees.format(gross)}</p></div>
+                <div className="rounded-lg border border-border p-4"><p className="text-xs text-muted-foreground">Estimated total cost</p><p className="font-display text-xl font-bold mt-1 num">{rupees.format(costs)}</p></div>
+                <div className="rounded-lg border border-border p-4"><p className="text-xs text-muted-foreground">Estimated net before other charges</p><p className={`font-display text-xl font-bold mt-1 num ${net < 0 ? 'text-bad' : 'text-good'}`}>{rupees.format(net)}</p></div>
+                <p className="sm:col-span-3 text-xs text-muted-foreground">Break-even sale price: {rupees.format(breakEven)} per quintal. Excludes financing, storage, transport, grading, taxes and price/production risk. Confirm local rates and costs before making decisions.</p>
+              </div>;
+            })() : <p className="mt-4 rounded-md bg-muted/40 p-3 text-sm text-muted-foreground">Add yield, sale price and costs to see a transparent estimate.</p>}
+          </div>
+          <div className="border-t border-border pt-5">
+            <h3 className="font-display text-lg font-bold">Before making a crop or sale decision</h3>
+            <ul className="mt-3 grid gap-3 text-sm text-muted-foreground sm:grid-cols-3">
+              <li className="border-l-2 border-border pl-3">Check today’s price and grade at the specific mandi where you can sell.</li>
+              <li className="border-l-2 border-border pl-3">Include transport, storage, commission, quality deductions and timing in your costs.</li>
+              <li className="border-l-2 border-border pl-3">Compare with your local agriculture office or extension service before changing a crop plan.</li>
+            </ul>
+            <a href="https://agmarknet.gov.in/" target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4">Check the official Agmarknet portal</a>
           </div>
         </TabsContent>
       </Tabs>

@@ -27,7 +27,7 @@ const band = (v: number, ideal: [number, number], ok: [number, number]): StatusK
   v >= ideal[0] && v <= ideal[1] ? 'good' : v >= ok[0] && v <= ok[1] ? 'warn' : 'bad';
 
 export default function HomeDashboard() {
-  const { sensors, lastUpdated, settings, t } = useSensors();
+  const { sensors, settings, t } = useSensors();
   const [mounted, setMounted] = useState(false);
   const [irrigationOn, setIrrigationOn] = useState(false);
   const [tasks, setTasks] = useState<Task[]>(DEFAULT_TASKS);
@@ -77,37 +77,14 @@ export default function HomeDashboard() {
   const pStatus = band(ph, [6.0, 7.0], [5.5, 7.5]);
   const nStatus: StatusKind = nut === 'High' ? 'good' : nut === 'Medium' ? 'warn' : 'bad';
 
-  // Same scoring rules as before; now the penalties are shown, not hidden.
-  const penalties: [string, number][] = [];
-  if (m < 60 || m > 85) penalties.push([t('dashboard_moisture'), 15]);
-  if (tmp < 20 || tmp > 30) penalties.push([t('dashboard_temp'), 10]);
-  if (ph < 5.5 || ph > 7.5) penalties.push([t('dashboard_ph'), 15]);
-  if (nut === 'Low') penalties.push([t('dashboard_nutrients'), 20]);
-  const score = Math.max(0, 100 - penalties.reduce((a, [, n]) => a + n, 0));
-
-  const issues: string[] = [];
-  if (mStatus !== 'good') issues.push(`${t('dashboard_moisture').toLowerCase()} is ${m.toFixed(1)}%, ${m < 70 ? 'below' : 'above'} the 70–80% target`);
-  if (tStatus !== 'good') issues.push(`${t('dashboard_temp').toLowerCase()} is ${tmp.toFixed(1)}°C, ${tmp < 22 ? 'below' : 'above'} the 22–26°C target`);
-  if (pStatus !== 'good') issues.push(`pH is ${ph.toFixed(1)}, ${ph < 6 ? 'below' : 'above'} the 6.0–7.0 target`);
-  if (nStatus !== 'good') issues.push(`nutrients are ${nut.toLowerCase()}, target is high`);
-  const headline = issues.length === 0
-    ? `All four readings are inside their target range for ${settings.cropType || 'your crop'}.`
-    : issues.join('; ').replace(/^./, c => c.toUpperCase()) + '.';
-
   const done = tasks.filter(t => t.completed).length;
 
   return (
     <div className="space-y-12">
       <section aria-labelledby="brief">
-        <p className="text-sm text-muted-foreground num">
-          {format(new Date(), 'EEEE d MMMM')} · {settings.cropType} · {settings.location.split(',')[0]}
-        </p>
-        <h2 id="brief" className="font-display text-2xl md:text-4xl font-bold leading-tight mt-2 max-w-3xl text-balance">{headline}</h2>
-        <p className="text-sm text-muted-foreground mt-3 num">
-          Field score <strong className="text-foreground">{score}/100</strong>
-          {penalties.length > 0 && <> (−{penalties.map(([n, p]) => `${p} ${n.toLowerCase()}`).join(', −')})</>}
-          {' · '}counts out-of-range readings only, not "Watch"{' · '}updated {format(lastUpdated, 'h:mm:ss a')} · simulated sensors
-        </p>
+        <p className="text-sm text-muted-foreground">Example snapshot · {settings.cropType} · {settings.location.split(',')[0]}</p>
+        <h2 id="brief" className="font-display text-2xl md:text-4xl font-bold leading-tight mt-2 max-w-3xl text-balance">A field dashboard ready for real readings.</h2>
+        <p className="text-sm text-muted-foreground mt-3 max-w-2xl">The values below are fixed examples, not connected sensors. Status bands and this dashboard’s indicators are illustrative; check crop-specific guidance before making field decisions.</p>
       </section>
 
       <section aria-labelledby="readings">
@@ -178,7 +155,7 @@ export default function HomeDashboard() {
           <div className="flex items-center justify-between gap-4 py-4 border-b border-border">
             <div>
               <p className="text-[15px] font-semibold" id="valve-label">{t('dashboard_smart_valve')}</p>
-              <p className="text-sm text-muted-foreground">{irrigationOn ? 'On: irrigation running' : 'Off'}</p>
+          <p className="text-sm text-muted-foreground">{irrigationOn ? 'Demo state: on · no controller connected' : 'Demo control · no controller connected'}</p>
             </div>
             <button
               role="switch"
@@ -191,7 +168,7 @@ export default function HomeDashboard() {
             </button>
           </div>
           {[
-            { href: '/diagnosis', title: t('dashboard_disease_scan'), sub: 'Photograph a leaf for an AI diagnosis' },
+            { href: '/diagnosis', title: t('dashboard_disease_scan'), sub: 'Screen a leaf photo for visible signs' },
             { href: '/weather', title: 'Weather forecast', sub: 'Live forecast for your location' },
             { href: '/prices', title: 'Market prices', sub: 'Sample mandi prices' },
           ].map(l => (

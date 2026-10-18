@@ -30,7 +30,6 @@ interface SensorContextType {
   sensors: SensorData;
   settings: UserSettings;
   updateSettings: (newSettings: Partial<UserSettings>) => void;
-  lastUpdated: Date;
   t: (key: TranslationKeys) => string;
 }
 
@@ -49,7 +48,7 @@ const defaultSettings: UserSettings = {
 const SensorContext = createContext<SensorContextType | undefined>(undefined);
 
 export const SensorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [sensors, setSensors] = useState<SensorData>({
+  const [sensors] = useState<SensorData>({
     soilMoisture: 69.4,
     soilTemperature: 24.1,
     soilPh: 6.3,
@@ -57,19 +56,35 @@ export const SensorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   useEffect(() => {
-    const saved = localStorage.getItem('agrisense_settings');
-    if (saved) {
-      setSettings(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem('agrisense_settings');
+      if (!saved) return;
+      const parsed: unknown = JSON.parse(saved);
+      if (!parsed || typeof parsed !== 'object') return;
+      const candidate = parsed as Partial<UserSettings>;
+      const language = ['en', 'hi', 'pb', 'ta', 'te', 'mr', 'kn', 'bn', 'gu'].includes(String(candidate.language)) ? candidate.language! : defaultSettings.language;
+      setSettings({
+        cropType: typeof candidate.cropType === 'string' && candidate.cropType.length < 80 ? candidate.cropType : defaultSettings.cropType,
+        farmSize: typeof candidate.farmSize === 'string' && /^\d+(\.\d+)?$/.test(candidate.farmSize) ? candidate.farmSize : defaultSettings.farmSize,
+        location: typeof candidate.location === 'string' && candidate.location.length < 120 ? candidate.location : defaultSettings.location,
+        language,
+        notifications: {
+          weather: typeof candidate.notifications?.weather === 'boolean' ? candidate.notifications.weather : defaultSettings.notifications.weather,
+          prices: typeof candidate.notifications?.prices === 'boolean' ? candidate.notifications.prices : defaultSettings.notifications.prices,
+          sensor: typeof candidate.notifications?.sensor === 'boolean' ? candidate.notifications.sensor : defaultSettings.notifications.sensor,
+        },
+      });
+    } catch {
+      try { localStorage.removeItem('agrisense_settings'); } catch { /* Storage may be unavailable. */ }
     }
   }, []);
 
   const updateSettings = (newSettings: Partial<UserSettings>) => {
     setSettings(prev => {
       const updated = { ...prev, ...newSettings };
-      localStorage.setItem('agrisense_settings', JSON.stringify(updated));
+      try { localStorage.setItem('agrisense_settings', JSON.stringify(updated)); } catch { /* Keep in-memory settings if storage is unavailable. */ }
       return updated;
     });
   };
@@ -79,34 +94,8 @@ export const SensorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return translations[lang]?.[key] || translations.en[key] || key;
   }, [settings.language]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSensors(prev => {
-        const moistureDelta = (Math.random() - 0.5) * 0.5;
-        const tempDelta = (Math.random() - 0.5) * 0.2;
-        const phDelta = (Math.random() - 0.5) * 0.05;
-
-        let nextNutrients = prev.nutrientLevel;
-        if (Math.random() > 0.98) {
-          const levels: NutrientLevel[] = ['High', 'Medium', 'Low'];
-          nextNutrients = levels[Math.floor(Math.random() * levels.length)];
-        }
-
-        return {
-          soilMoisture: Math.min(100, Math.max(0, prev.soilMoisture + moistureDelta)),
-          soilTemperature: Math.min(50, Math.max(0, prev.soilTemperature + tempDelta)),
-          soilPh: Math.min(14, Math.max(0, prev.soilPh + phDelta)),
-          nutrientLevel: nextNutrients,
-        };
-      });
-      setLastUpdated(new Date());
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <SensorContext.Provider value={{ sensors, settings, updateSettings, lastUpdated, t }}>
+    <SensorContext.Provider value={{ sensors, settings, updateSettings, t }}>
       {children}
     </SensorContext.Provider>
   );

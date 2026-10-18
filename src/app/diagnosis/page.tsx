@@ -1,345 +1,101 @@
 "use client";
 
-import { useState, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Camera, AlertTriangle, RefreshCw, Leaf, Sparkles, WifiOff, X, ShieldCheck, Upload } from 'lucide-react';
-import { useSensors } from '@/context/SensorContext';
-import type { DiagnoseCropOutput } from '@/ai/flows/diagnose-crop-disease';
-import { cn } from '@/lib/utils';
-import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { useRef, useState } from "react";
+import Image from "next/image";
+import { AlertTriangle, Camera, Check, ImagePlus, LoaderCircle, RotateCcw, ShieldCheck, Sparkles, Upload, X } from "lucide-react";
+import { useSensors } from "@/context/SensorContext";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
-const DEMO_DIAGNOSES: Record<string, DiagnoseCropOutput> = {
-  Rice: {
-    identification: 'Rice Blast (Magnaporthe oryzae)',
-    confidence: 0.87,
-    description: 'Diamond-shaped lesions with grey centers and brown borders observed on leaves. Classic symptoms of rice blast — a fungal infection most common in humid, warm conditions with heavy nitrogen use.',
-    organicTreatment: 'Apply neem oil spray (5ml/L) every 7 days. Ensure proper field drainage and reduce nitrogen application. Remove and destroy infected plant material. Use Trichoderma-based bioagent as a soil drench.',
-    severity: 'Medium',
-  },
-  Wheat: {
-    identification: 'Yellow Rust (Puccinia striiformis)',
-    confidence: 0.91,
-    description: 'Yellow-orange pustules in stripe pattern along leaf veins. Yellow rust thrives in cool, moist weather and can spread rapidly across a field.',
-    organicTreatment: 'Remove infected leaves immediately. Apply sulfur-based fungicide or neem extract spray. Ensure good air circulation between rows. Scout weekly and remove new pustules before they sporulate.',
-    severity: 'High',
-  },
-  Cotton: {
-    identification: 'Bacterial Blight (Xanthomonas citri)',
-    confidence: 0.83,
-    description: 'Angular water-soaked lesions on leaves turning brown with yellow halos. Commonly spreads through rain splash and infected seeds.',
-    organicTreatment: 'Spray copper-based bactericide (Bordeaux mixture 1%). Avoid overhead irrigation. Remove affected branches and dispose safely. Maintain plant spacing for airflow.',
-    severity: 'Medium',
-  },
-  default: {
-    identification: 'Nutrient Deficiency (Nitrogen)',
-    confidence: 0.79,
-    description: 'Yellowing of older lower leaves progressing upward — classic nitrogen deficiency pattern. Soil pH imbalance or waterlogging can reduce nitrogen update even in well-fertilized fields.',
-    organicTreatment: 'Apply compost tea or vermicompost at base of plants. Use green manure cover crops in off-season. Foliar spray of diluted fish emulsion (2%) can provide quick uptake. Check soil pH (target 6.0–7.0).',
-    severity: 'Low',
-  },
+type CropAssessment = {
+  likelyIssue: string;
+  alternatives: string[];
+  visibleSigns: string;
+  nextStep: string;
+  confidence: "low" | "moderate" | "high";
 };
 
-function getDemoResult(cropType: string): DiagnoseCropOutput {
-  return DEMO_DIAGNOSES[cropType] || DEMO_DIAGNOSES.default;
-}
-
-const severityConfig = {
-  High: { color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/25', label: 'Critical' },
-  Medium: { color: 'text-primary', bg: 'bg-primary/10 border-primary/25', label: 'Moderate' },
-  Low: { color: 'text-sage', bg: 'bg-sage/10 border-sage/25', label: 'Low' },
-};
+const MAX_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export default function CropDiagnosis() {
-  const { settings, t } = useSensors();
-  const [image, setImage] = useState<string | null>(null);
+  const { settings } = useSensors();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<DiagnoseCropOutput | null>(null);
-  const [isOfflineResult, setIsOfflineResult] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [assessment, setAssessment] = useState<CropAssessment | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
+  const clear = () => {
+    setPreview(null); setFile(null); setAssessment(null); setError(null);
+    if (inputRef.current) inputRef.current.value = "";
   };
 
-  const processFile = (file: File) => {
+  const selectFile = (candidate?: File) => {
+    if (!candidate) return;
+    if (!ACCEPTED_TYPES.includes(candidate.type)) return setError("Choose a JPEG, PNG, or WebP image.");
+    if (candidate.size > MAX_BYTES) return setError("Image must be 5 MB or smaller.");
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImage(reader.result as string);
-      setResult(null);
-      setIsOfflineResult(false);
-      setAiError(null);
+    reader.onload = () => {
+      if (typeof reader.result !== "string") return setError("Could not read that image. Try another photo.");
+      setPreview(reader.result); setFile(candidate); setAssessment(null); setError(null);
     };
-    reader.readAsDataURL(file);
+    reader.onerror = () => setError("Could not read that image. Try another photo.");
+    reader.readAsDataURL(candidate);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) processFile(file);
-  };
-
-  const handleDiagnose = async () => {
-    if (!image) return;
-    setLoading(true);
-    setResult(null);
-    setIsOfflineResult(false);
-    setAiError(null);
-
-    if (typeof window !== 'undefined' && !window.navigator.onLine) {
-      setTimeout(() => {
-        setResult(getDemoResult(settings.cropType));
-        setIsOfflineResult(true);
-        setLoading(false);
-      }, 1500);
-      return;
-    }
-
+  const analyze = async () => {
+    if (!preview || !file) return;
+    if (!navigator.onLine) return setError("You’re offline. Reconnect to screen this image; no sample result will be shown.");
+    setLoading(true); setError(null); setAssessment(null);
     try {
-      const response = await fetch('/api/diagnose', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photoDataUri: image, cropType: settings.cropType }),
+      const response = await fetch("/api/diagnose", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoDataUri: preview, cropType: settings.cropType }),
       });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.details || err.error || `Server error ${response.status}`);
-      }
-      const data: DiagnoseCropOutput = await response.json();
-      setResult(data);
-    } catch (error: any) {
-      console.error('AI diagnosis failed:', error?.message);
-      setAiError(error?.message || 'AI analysis failed. Please check your connection and try again.');
-    } finally {
-      setLoading(false);
-    }
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(typeof payload?.error === "string" ? payload.error : "Screening is temporarily unavailable.");
+      setAssessment(payload as CropAssessment);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Screening failed. Please try again.");
+    } finally { setLoading(false); }
   };
 
-  const reset = () => {
-    setResult(null);
-    setImage(null);
-    setIsOfflineResult(false);
-    setAiError(null);
-  };
+  return <div className="space-y-8 pb-8">
+    <header className="max-w-3xl">
+      <div className="flex flex-wrap items-center gap-2 mb-3"><Badge variant="outline" className="rounded-full"><Sparkles className="w-3 h-3 mr-1.5" />Groq vision screening</Badge><Badge variant="outline" className="rounded-full">{settings.cropType} · visual check</Badge></div>
+      <h2 className="font-display text-3xl md:text-5xl font-bold text-balance">Check a crop photo</h2>
+      <p className="mt-3 text-lg text-muted-foreground">Get a cautious first look at visible symptoms, plus useful next observations to take to a local agriculture expert.</p>
+    </header>
 
-  const sev = result ? severityConfig[result.severity as keyof typeof severityConfig] || severityConfig.Low : null;
-
-  return (
-    <motion.div
-      className="space-y-6"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      {/* Header */}
-      <div className="pt-2">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="font-display text-2xl md:text-3xl font-bold tracking-tight text-foreground">{t('scan_title')}</h2>
-          <Badge variant="outline" className={cn(
-            "text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full",
-            isOfflineResult ? "bg-destructive/10 text-destructive border-destructive/25" : "bg-primary/10 text-primary border-primary/25"
-          )}>
-            {isOfflineResult ? "Demo Mode" : "Live AI"}
-          </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground font-medium">{t('scan_subtitle')}</p>
-      </div>
-
-      {!image ? (
-        <section className="space-y-6">
-          {/* ═══ Drag & Drop Upload Zone ═══ */}
-          <Card className="border border-border/50 bg-card/80 rounded-2xl overflow-hidden shadow-premium">
-            <CardContent className="p-6">
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={handleDrop}
-                className={cn(
-                  "aspect-square md:aspect-[16/10] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-300",
-                  isDragging
-                    ? "border-primary bg-primary/5 scale-[1.01]"
-                    : "border-primary/30 bg-muted/20 hover:bg-muted/40 hover:border-primary/50"
-                )}
-              >
-                <div className={cn(
-                  "w-16 h-16 rounded-2xl flex items-center justify-center transition-colors",
-                  isDragging ? "bg-primary/15" : "bg-muted/50 border border-border/50"
-                )}>
-                  {isDragging ? <Upload className="w-8 h-8 text-primary" /> : <Camera className="w-8 h-8 text-muted-foreground" />}
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="font-display text-lg font-semibold text-foreground">
-                    {isDragging ? 'Drop image here' : 'Snap or Upload'}
-                  </p>
-                  <p className="text-sm text-muted-foreground font-medium">Drag & drop or click — clear photo of infected leaf</p>
-                </div>
-                <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} className="hidden" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Info block */}
-          <div className="bg-muted/30 p-4 rounded-xl border border-border/50 flex flex-col gap-3">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                <Sparkles className="w-4 h-4 text-primary" />
-              </div>
-              <p className="text-xs font-medium text-foreground leading-relaxed mt-1">
-                AgriSense AI analyses your crop photo to identify diseases, nutrient deficiencies, and pests with high accuracy.
-              </p>
-            </div>
-            <div className="pt-3 border-t border-border/30">
-              <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider mb-1">Setup Note</p>
-              <p className="text-[10px] text-muted-foreground font-medium">To enable real-time AI diagnosis, ensure <code className="bg-primary/10 px-1 rounded text-primary font-mono">GOOGLE_GENAI_API_KEY</code> is set in your environment. Otherwise, the app uses realistic demo data.</p>
-            </div>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]">
+      <Card className="rounded-2xl border-border/70 overflow-hidden"><CardContent className="p-4 md:p-6">
+        {!preview ? <button type="button" onClick={() => inputRef.current?.click()} onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(e) => { e.preventDefault(); setDragging(false); selectFile(e.dataTransfer.files[0]); }}
+          className={cn("w-full min-h-[310px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-4 px-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", dragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/30")}>
+          <span className="w-14 h-14 rounded-2xl grid place-items-center bg-primary/10 text-primary">{dragging ? <Upload /> : <ImagePlus />}</span>
+          <span><strong className="block font-display text-xl">Drop a clear leaf photo</strong><span className="text-sm text-muted-foreground">or browse your device · JPEG, PNG, WebP · up to 5 MB</span></span>
+          <span className="text-xs text-muted-foreground">Good light · close focus · include the whole affected area</span>
+        </button> : <div className="space-y-4">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted"><Image src={preview} alt="Selected crop for visual screening" fill unoptimized className="object-contain" />
+            <button type="button" onClick={clear} aria-label="Remove selected image" className="absolute top-3 right-3 grid h-10 w-10 place-items-center rounded-full bg-background/90 border border-border shadow-sm"><X className="w-4 h-4" /></button>
+            {loading && <div className="absolute inset-0 grid place-items-center bg-background/70 backdrop-blur-sm"><div className="flex items-center gap-2 rounded-full border bg-background px-4 py-2 text-sm"><LoaderCircle className="w-4 h-4 animate-spin" />Checking visible signs…</div></div>}
           </div>
-        </section>
-      ) : (
-        <section className="space-y-6">
-          {/* ═══ Image + Results — Split Pane ═══ */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Left: Image */}
-            <Card className="border border-border/50 bg-card/80 rounded-2xl overflow-hidden shadow-premium">
-              <CardContent className="p-2">
-                <div className="relative aspect-square rounded-xl overflow-hidden bg-muted group">
-                  <Image src={image} alt="Crop" fill className="object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent pointer-events-none" />
-                  <button
-                    onClick={reset}
-                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-background/60 backdrop-blur-sm text-foreground flex items-center justify-center hover:bg-background/80 transition-colors z-10"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  {loading && (
-                    <div className="absolute inset-0 z-20 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
-                      {/* Loading skeleton */}
-                      <div className="space-y-3 w-3/4">
-                        <div className="skeleton h-4 w-full" />
-                        <div className="skeleton h-4 w-2/3" />
-                        <div className="skeleton h-20 w-full mt-4" />
-                        <div className="skeleton h-4 w-1/2" />
-                      </div>
-                      <p className="text-xs font-medium text-muted-foreground mt-2">Analysing leaf structure & pigments...</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground truncate max-w-[70%]">{file?.name}</p><Button type="button" variant="outline" className="min-h-11" onClick={() => inputRef.current?.click()}><Camera className="w-4 h-4 mr-2" />Choose another</Button></div>
+          <Button onClick={analyze} disabled={loading} className="w-full min-h-12 rounded-xl"><Sparkles className="w-4 h-4 mr-2" />{loading ? "Screening image…" : "Screen this photo"}</Button>
+        </div>}
+        <input ref={inputRef} type="file" accept={ACCEPTED_TYPES.join(",")} className="sr-only" onChange={(e) => selectFile(e.target.files?.[0])} aria-label="Choose a crop image" />
+      </CardContent></Card>
 
-            {/* Right: Results or Action */}
-            <div className="space-y-4 flex flex-col">
-              {!result && !loading && !aiError && (
-                <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-2xl p-8 bg-muted/10">
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
-                    <Sparkles className="w-6 h-6 text-primary" />
-                  </div>
-                  <p className="font-display text-lg font-semibold text-foreground mb-1">Ready to Analyse</p>
-                  <p className="text-xs text-muted-foreground mb-6">AI will scan for diseases, deficiencies, and pests</p>
-                  <Button onClick={handleDiagnose} className="w-full max-w-xs h-12 bg-primary text-primary-foreground rounded-xl font-semibold text-sm shadow-premium gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    {t('scan_btn')}
-                  </Button>
-                </div>
-              )}
-
-              {aiError && !loading && (
-                <div className="p-5 rounded-xl bg-destructive/8 border border-destructive/25 space-y-3">
-                  <div className="flex items-center gap-2 text-destructive">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <p className="text-xs font-bold uppercase tracking-wider">AI Analysis Failed</p>
-                  </div>
-                  <p className="text-xs text-destructive/80 font-medium leading-relaxed">{aiError}</p>
-                  <div className="flex gap-2 pt-1">
-                    <Button onClick={handleDiagnose} variant="destructive" className="flex-1 h-10 rounded-lg text-xs">
-                      <RefreshCw className="w-3 h-3 mr-2" /> Retry
-                    </Button>
-                    <Button onClick={() => { setAiError(null); setResult(getDemoResult(settings.cropType)); setIsOfflineResult(true); }} variant="outline" className="flex-1 h-10 rounded-lg text-xs">
-                      Use Demo
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {result && sev && (
-                <motion.div
-                  className="space-y-4 flex-1"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  {isOfflineResult && (
-                    <div className="flex items-center gap-2 bg-destructive/8 border border-destructive/20 px-3 py-2 rounded-lg w-fit">
-                      <WifiOff className="w-3 h-3 text-destructive" />
-                      <span className="text-[10px] font-bold text-destructive uppercase tracking-wider">Demo Result</span>
-                    </div>
-                  )}
-
-                  {/* Identification */}
-                  <div className="flex items-start gap-3">
-                    <div className={cn("p-2.5 rounded-xl border", sev.bg)}>
-                      {result.severity === 'High' ? <AlertTriangle className={cn("w-5 h-5", sev.color)} /> : <ShieldCheck className={cn("w-5 h-5", sev.color)} />}
-                    </div>
-                    <div>
-                      <h3 className="font-display text-lg font-bold text-foreground leading-tight">{result.identification}</h3>
-                      <p className="font-mono text-[11px] text-muted-foreground mt-1">
-                        Confidence: {(result.confidence * 100).toFixed(0)}%
-                      </p>
-                    </div>
-                  </div>
-
-                  <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md", sev.bg, sev.color)}>
-                    {sev.label} Severity
-                  </Badge>
-
-                  {/* Observation */}
-                  <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Observation</p>
-                    <p className="text-xs text-foreground leading-relaxed font-medium">{result.description}</p>
-                  </div>
-
-                  {/* Treatment */}
-                  <div className="p-4 rounded-xl bg-sage/5 border border-sage/20">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Leaf className="w-3.5 h-3.5 text-sage" />
-                      <p className="text-[10px] font-bold text-sage uppercase tracking-wider">Organic Treatment Plan</p>
-                    </div>
-                    <p className="text-xs text-foreground leading-relaxed font-medium">{result.organicTreatment}</p>
-                  </div>
-
-                  <Button variant="outline" className="w-full rounded-xl h-10 border-border/50 mt-2" onClick={reset}>
-                    {t('scan_another')}
-                  </Button>
-                </motion.div>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Photo Guidelines */}
-      <section className="space-y-3">
-        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] pl-1">Photo Guidelines</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {[
-            { label: 'Good Lighting', icon: '☀️' },
-            { label: 'Clear Focus', icon: '🔍' },
-            { label: 'Close Up', icon: '🌿' },
-            { label: 'Single Leaf', icon: '🍃' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-2 p-3 rounded-xl bg-card/80 border border-border/50">
-              <span className="text-lg">{item.icon}</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{item.label}</span>
-            </div>
-          ))}
-        </div>
+      <section aria-live="polite" aria-busy={loading} className="rounded-2xl border border-border/70 bg-card p-5 md:p-6 min-h-[300px]">
+        {error ? <div className="space-y-4"><div className="flex gap-3 text-destructive"><AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" /><div><h3 className="font-semibold">Couldn’t screen this photo</h3><p className="mt-1 text-sm">{error}</p></div></div><Button variant="outline" onClick={() => setError(null)}><RotateCcw className="w-4 h-4 mr-2" />Try again</Button></div>
+          : assessment ? <div className="space-y-5"><div className="flex items-start gap-3"><span className="grid place-items-center w-10 h-10 rounded-xl bg-primary/10 text-primary"><ShieldCheck className="w-5 h-5" /></span><div><p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Possible finding · {assessment.confidence} confidence</p><h3 className="font-display text-xl font-bold mt-1">{assessment.likelyIssue}</h3></div></div><div><h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Visible signs</h4><p className="text-sm leading-relaxed">{assessment.visibleSigns}</p></div>{assessment.alternatives.length > 0 && <div><h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Other possibilities</h4><p className="text-sm">{assessment.alternatives.join(" · ")}</p></div>}<div className="rounded-xl bg-muted/60 p-4"><h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Useful next step</h4><p className="text-sm leading-relaxed">{assessment.nextStep}</p></div><p className="text-xs text-muted-foreground border-t border-border pt-4">AI visual screening can be wrong. Compare several plants and confirm with your local extension service before taking action.</p></div>
+          : <div className="h-full flex flex-col justify-center"><div className="grid place-items-center w-12 h-12 rounded-xl bg-muted mb-5"><ImagePlus className="w-5 h-5 text-muted-foreground" /></div><p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Your assessment</p><h3 className="font-display text-2xl font-bold mt-1">Evidence first.</h3><p className="text-sm text-muted-foreground mt-2 leading-relaxed">Upload a photo to screen for visible signs. If the image is ambiguous, the tool will say so instead of inventing a diagnosis.</p><div className="mt-6 space-y-3 text-sm text-muted-foreground"><p className="flex gap-2"><Check className="w-4 h-4 text-primary shrink-0" />Alternative explanations</p><p className="flex gap-2"><Check className="w-4 h-4 text-primary shrink-0" />Safe observation steps</p><p className="flex gap-2"><Check className="w-4 h-4 text-primary shrink-0" />No chemical rates or prescriptions</p></div></div>}
       </section>
-    </motion.div>
-  );
+    </div>
+    <p className="text-xs text-muted-foreground max-w-3xl">Your selected image and crop label are sent to Groq to generate this screening. Avoid including people or identifying details. For local, timely recommendations, consult an <a className="underline underline-offset-2" href="https://www.icar.org.in/en/integrated-pest-management-sustainable-approach-responsible-pest-management" target="_blank" rel="noreferrer">ICAR extension resource</a>.</p>
+  </div>;
 }

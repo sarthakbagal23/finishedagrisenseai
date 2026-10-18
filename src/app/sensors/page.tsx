@@ -68,7 +68,7 @@ export default function SensorAnalytics() {
         <div>
           <h2 className="font-display text-2xl md:text-3xl font-bold">Seven days of soil readings</h2>
           <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-            Lines are a fixed sample week, shaded bands are the target range, and the live value beside each title comes from the simulated feed.
+            Lines and current values are fixed examples, not device readings. Shaded bands illustrate app demo ranges; use crop-specific soil testing and local extension guidance for real decisions.
           </p>
         </div>
         <div role="group" aria-label="View" className="inline-flex border border-foreground rounded-md overflow-hidden text-sm font-semibold">
@@ -88,9 +88,9 @@ export default function SensorAnalytics() {
             return (
               <figure key={mt.key} className="figure-enter">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-                  <FigureCaption title={mt.title} source="Sample week, not device data." caveat={mt.bandLabel ? mt.bandLabel + '.' : 'No numeric target; level comes from the live feed.'} />
+                  <FigureCaption title={mt.title} source="Illustrative sample values, not device data." caveat={mt.bandLabel ? `Demo band ${mt.bandLabel.toLowerCase()}, not a crop-specific recommendation.` : 'Illustrative levels; no live feed is connected.'} />
                   <div className="text-right mb-3">
-                    <p className="text-sm text-muted-foreground">Now (simulated)</p>
+                    <p className="text-sm text-muted-foreground">Current example</p>
                     <p className="num font-display text-2xl font-bold leading-none">{mt.live}</p>
                     <Status kind={mt.status} className="mt-1" />
                   </div>
@@ -142,7 +142,7 @@ export default function SensorAnalytics() {
       )}
 
       <p className="text-sm text-muted-foreground border-t border-border pt-4 max-w-2xl">
-        A sudden drop in moisture or a jump in temperature can point to an irrigation fault or a weather change; compare against the forecast before acting.
+        These examples demonstrate how a sensor dashboard could behave. No sensor is connected, and the sample values cannot identify irrigation faults or guide field decisions.
       </p>
     </div>
   );

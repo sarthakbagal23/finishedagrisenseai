@@ -1,5 +1,6 @@
 import { Download, FileText, Table2 } from "lucide-react";
 import data from "@/data/dataset-site.json";
+import { DatasetExplorer } from "./DatasetExplorer";
 
 export const metadata = { title: "Explore the dataset · AgriSense" };
 
@@ -115,21 +116,7 @@ export default function DatasetPage() {
         </dl>
       </section>
 
-      <section aria-labelledby="peek">
-        <h3 id="peek" className="font-display text-2xl font-bold border-b border-foreground pb-2">First eight rows</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm num min-w-[640px]">
-            <thead><tr className="text-left border-b border-border">
-              {data.columns.map((c) => <th key={c} className="py-2 pr-4 font-semibold whitespace-nowrap">{c.replace(/_/g, " ")}</th>)}
-            </tr></thead>
-            <tbody className="divide-y divide-border">
-              {data.preview.map((r: any) => (
-                <tr key={r.Trial_ID}>{data.columns.map((c) => <td key={c} className="py-2 pr-4 whitespace-nowrap">{r[c]}</td>)}</tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <DatasetExplorer />
 
       <section aria-labelledby="repro" className="max-w-3xl">
         <h3 id="repro" className="font-display text-2xl font-bold">Reproduce it</h3>

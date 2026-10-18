@@ -1,206 +1,172 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CloudRain, Droplets, Wind, Eye, WifiOff, RefreshCw, Cloud, Sun } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertCircle, ArrowDown, ArrowUp, CloudRain, Droplets, ExternalLink, Eye, LoaderCircle, MapPin, RefreshCw, Wind } from 'lucide-react';
 import { useSensors } from '@/context/SensorContext';
+import { Button } from '@/components/ui/button';
+import { getWeatherForecast, type WeatherData, type WeatherDay } from './actions';
 import { cn } from '@/lib/utils';
-import { getWeatherForecast, type WeatherData } from './actions';
-import { motion } from 'framer-motion';
 
-const DEFAULT_FORECAST: WeatherData = {
-  current: { icon: '☀️', temp: 28, low: 21, rain: '10%', cond: 'Sunny', humidity: 52, wind: 11, visibility: 10 },
-  daily: [
-    { day: 'Today', icon: '☀️', temp: 28, low: 21, rain: '10%', cond: 'Sunny', isIdeal: true },
-    { day: 'Tomorrow', icon: '☀️', temp: 29, low: 22, rain: '10%', cond: 'Ideal', isIdeal: true },
-    { day: 'Tue', icon: '⛅', temp: 27, low: 21, rain: '30%', cond: 'Partly Cloudy', isIdeal: false },
-    { day: 'Wed', icon: '☁️', temp: 26, low: 20, rain: '70%', cond: 'Cloudy', isIdeal: false },
-    { day: 'Thu', icon: '🌧️', temp: 24, low: 19, rain: '85%', cond: 'Rain', isIdeal: false },
-    { day: 'Fri', icon: '🌧️', temp: 25, low: 20, rain: '85%', cond: 'Showers', isIdeal: false },
-    { day: 'Sat', icon: '⛅', temp: 26, low: 20, rain: '30%', cond: 'Clearing', isIdeal: false },
-  ]
-};
-
-const stagger = {
-  container: { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } },
-  item: { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } } },
-} as const;
+function planningSignal(day: WeatherDay) {
+  if (day.rainChance >= 60 || day.rainMm >= 10) {
+    return {
+      title: 'Rain is in the forecast',
+      body: `Forecast: ${day.rainChance}% precipitation probability and ${day.rainMm} mm. Check drainage and the local district bulletin before time-sensitive field work.`,
+    };
+  }
+  if (day.et0Mm != null) {
+    return {
+      title: 'Compare weather demand with the field',
+      body: `Reference ET₀ is ${day.et0Mm} mm for this day. It is a weather-based reference estimate, not an irrigation prescription; compare it with crop stage and a field soil check.`,
+    };
+  }
+  return {
+    title: 'No strong rain signal in this forecast',
+    body: 'Use the crop stage and an on-field soil check to plan irrigation. Forecast conditions alone do not show how much water the root zone needs.',
+  };
+}
 
 export default function WeatherForecast() {
-  const { settings, t } = useSensors();
-  const [weather, setWeather] = useState<WeatherData>(DEFAULT_FORECAST);
+  const { settings } = useSensors();
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [selectedDate, setSelectedDate] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    handleRefresh();
-  }, [settings.location]);
-
-  const handleRefresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
-    setIsOffline(false);
-    if (typeof window !== 'undefined' && !window.navigator.onLine) {
-      setWeather(DEFAULT_FORECAST);
-      setIsOffline(true);
-      setLoading(false);
-      return;
-    }
+    setError(null);
     try {
-      const data = await getWeatherForecast(settings.location);
-      setWeather(data);
-    } catch (error) {
-      console.error('Failed to fetch real weather:', error);
-      setWeather(DEFAULT_FORECAST);
-      setIsOffline(true);
+      const result = await getWeatherForecast(settings.location);
+      setWeather(result);
+      setSelectedDate(result.daily[0]?.date ?? '');
+    } catch (cause) {
+      setWeather(null);
+      setError(cause instanceof Error ? cause.message : 'Weather is unavailable for this location.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [settings.location]);
 
-  const today = weather.current;
-  const upcoming = weather.daily.slice(1);
-  const idealDays = weather.daily.filter(f => f.isIdeal).slice(0, 3);
+  useEffect(() => { void refresh(); }, [refresh]);
+
+  const selectedDay = useMemo(
+    () => weather?.daily.find(day => day.date === selectedDate) ?? weather?.daily[0] ?? null,
+    [weather, selectedDate],
+  );
+  const signal = selectedDay ? planningSignal(selectedDay) : null;
 
   return (
-    <motion.div
-      className="space-y-6"
-      variants={stagger.container}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Header */}
-      <motion.div variants={stagger.item} className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-3">
-          <div className="bg-muted/50 border border-border/50 p-2.5 rounded-xl">
-            <Cloud className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground">{t('more_weather')}</h2>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">{settings.location}</p>
-          </div>
+    <div className="space-y-7 md:space-y-9">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="h-4 w-4" />{weather?.location ?? settings.location}</div>
+          <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-foreground md:text-4xl">Weather for field planning</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">A location-matched forecast with rainfall and reference evapotranspiration. Use it alongside field observations and local advisories.</p>
         </div>
-        {isOffline && (
-          <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-border/50 text-[9px] font-bold uppercase tracking-wider">
-            <WifiOff className="w-3 h-3 mr-1.5" />
-            {t('common_offline_demo')}
-          </Badge>
-        )}
-      </motion.div>
+        <Button variant="outline" className="min-h-11 gap-2" onClick={() => void refresh()} disabled={loading}>
+          {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Refresh forecast
+        </Button>
+      </header>
 
-      {/* ═══ Hero Current Weather ═══ */}
-      <motion.section variants={stagger.item} className="relative overflow-hidden rounded-2xl border border-border/50 shadow-premium">
-        <div className="absolute inset-0 bg-gradient-to-br from-sage/10 via-transparent to-primary/8" />
-        {loading && (
-          <div className="absolute inset-0 z-20 bg-background/60 backdrop-blur-sm flex items-center justify-center">
-            <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-          </div>
-        )}
-        <div className="relative z-10 p-6 md:p-8 space-y-5">
-          <div className="flex items-start justify-between">
-            <div className="space-y-0.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">{t('weather_conditions')}</p>
-              <p className="text-sm font-semibold text-foreground">{settings.location}</p>
-            </div>
-            <div className="text-5xl">{today.icon}</div>
-          </div>
-
-          <div className="flex items-end gap-3">
-            <span className="font-mono text-7xl font-bold tracking-tighter leading-none text-foreground text-glow">{today.temp}°</span>
-            <div className="pb-2 space-y-0.5">
-              <p className="text-base font-semibold text-foreground">{today.cond}</p>
-              <p className="text-[11px] text-muted-foreground font-medium font-mono bg-muted/30 px-2 py-0.5 rounded-md border border-border/50">
-                {t('weather_low')} {today.low}°C {t('weather_tonight')}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-4 gap-2 pt-4 border-t border-border/30">
-            {[
-              { icon: CloudRain, label: t('weather_rain'), val: today.rain },
-              { icon: Droplets, label: t('weather_humidity'), val: `${today.humidity}%` },
-              { icon: Wind, label: t('weather_wind'), val: `${today.wind} km/h` },
-              { icon: Eye, label: t('weather_visibility'), val: `${today.visibility} km` },
-            ].map(({ icon: Icon, label, val }) => (
-              <div key={label} className="text-center space-y-1.5 p-2.5 bg-muted/20 rounded-xl border border-border/30">
-                <Icon className="w-3.5 h-3.5 mx-auto text-muted-foreground" />
-                <p className="font-mono text-xs font-bold">{val}</p>
-                <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.15em]">{label}</p>
-              </div>
-            ))}
-          </div>
+      {error && (
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-warn/30 bg-warn/10 p-4" role="alert">
+          <div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-warn" /><p className="text-sm text-foreground">{error}</p></div>
+          <Button variant="outline" size="sm" className="min-h-10" onClick={() => void refresh()} disabled={loading}>Try again</Button>
         </div>
-      </motion.section>
-
-      {/* ═══ Best Days to Farm ═══ */}
-      {idealDays.length > 0 && (
-        <motion.div variants={stagger.item}>
-          <Card className="border border-border/50 bg-card/80 rounded-2xl">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center gap-2 px-0.5">
-                <span className="text-base">🌱</span>
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-sage">
-                  {t('weather_best_days')}
-                </p>
-              </div>
-              <div className="space-y-2">
-                {idealDays.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-muted/20 border border-border/30 hover:border-sage/30 transition-colors">
-                    <span className="text-xs font-semibold flex items-center gap-2">
-                      <span>{f.icon}</span><span>{f.day}</span>
-                    </span>
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-mono text-xs font-medium text-muted-foreground">{f.temp}°C</span>
-                      <Badge variant="outline" className="bg-sage/10 text-sage border-sage/25 text-[9px] font-bold uppercase tracking-wider">✓ {t('weather_ideal')}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-[10px] text-muted-foreground font-medium px-1">Great for planting, irrigation, and harvesting</p>
-            </CardContent>
-          </Card>
-        </motion.div>
       )}
 
-      {/* ═══ 7-Day Forecast ═══ */}
-      <motion.section variants={stagger.item} className="space-y-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground px-1">{t('weather_7day')}</p>
-        <div className="space-y-2">
-          {upcoming.map((item, i) => (
-            <motion.div key={i} variants={stagger.item} whileHover={{ y: -1, transition: { duration: 0.15 } }}>
-              <Card className={cn(
-                "border border-border/50 rounded-xl transition-colors hover:border-primary/20",
-                item.isIdeal ? "bg-sage/5" : "bg-card/80"
-              )}>
-                <CardContent className="p-3.5 flex items-center gap-4">
-                  <div className="text-2xl w-10 h-10 flex items-center justify-center bg-muted/30 rounded-xl border border-border/30">
-                    {item.icon}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">{item.day}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{item.cond}</p>
-                  </div>
-                  <div className="text-right space-y-0.5">
-                    <p className="font-mono text-sm font-bold tracking-tight">{item.temp}°C</p>
-                    <p className="text-[10px] text-blue-400 font-medium flex items-center justify-end gap-1">
-                      <CloudRain className="w-2.5 h-2.5" />
-                      {item.rain}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+      {loading && !weather ? (
+        <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]" aria-busy="true" aria-label="Loading forecast">
+          <div className="h-72 animate-pulse rounded-2xl border border-border bg-muted/50" />
+          <div className="h-72 animate-pulse rounded-2xl border border-border bg-muted/50" />
         </div>
-      </motion.section>
+      ) : weather ? (
+        <>
+          <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-7">
+              <div aria-hidden className="absolute -right-12 -top-16 h-64 w-64 rounded-full border border-model/10" />
+              <div className="relative flex h-full flex-col justify-between gap-8">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current conditions · {weather.location}</p>
+                    <p className="mt-2 text-sm font-medium text-foreground">{weather.current.condition}</p>
+                  </div>
+                  <span className="text-5xl" aria-hidden>{weather.current.icon}</span>
+                </div>
+                <div className="flex flex-wrap items-end justify-between gap-6">
+                  <p className="font-display text-7xl font-semibold leading-none tracking-tight text-foreground">{weather.current.temp}<span className="text-4xl">°C</span></p>
+                  <div className="grid grid-cols-2 gap-x-5 gap-y-3 text-sm">
+                    <p className="flex items-center gap-2 text-muted-foreground"><Droplets className="h-4 w-4 text-model" />{weather.current.humidity}% humidity</p>
+                    <p className="flex items-center gap-2 text-muted-foreground"><Wind className="h-4 w-4 text-model" />{weather.current.windKmh} km/h wind</p>
+                    <p className="flex items-center gap-2 text-muted-foreground"><Eye className="h-4 w-4 text-model" />{weather.current.visibilityKm == null ? '—' : `${weather.current.visibilityKm} km`} visibility</p>
+                    <p className="flex items-center gap-2 text-muted-foreground"><CloudRain className="h-4 w-4 text-model" />{weather.daily[0]?.rainChance ?? 0}% rain chance</p>
+                  </div>
+                </div>
+                <p className="border-t border-border pt-3 text-xs text-muted-foreground">Retrieved {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(weather.updatedAt))} · forecast models can change</p>
+              </div>
+            </div>
 
-      {/* Tip */}
-      <motion.div variants={stagger.item} className="bg-muted/30 p-4 rounded-xl border border-border/50 flex items-start gap-3">
-        <span className="text-lg leading-none pt-0.5">💡</span>
-        <p className="text-xs font-medium text-foreground leading-relaxed">
-          {t('weather_tip')}
-        </p>
-      </motion.div>
-    </motion.div>
+            <div className="rounded-2xl border border-border bg-card p-5 md:p-6">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Plan with context</p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-foreground">{signal?.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{signal?.body}</p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <a href="https://mausam.imd.gov.in/imd_latest/contents/agromet/advisory/englishstate_current.php" target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  Check IMD agromet bulletin <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+                <a href="https://open-meteo.com/en/docs" target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  Forecast source <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            </div>
+          </section>
+
+          <section aria-labelledby="forecast-days">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h3 id="forecast-days" className="font-display text-xl font-semibold text-foreground">Choose a day</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Select a forecast to inspect rain and reference water demand.</p>
+              </div>
+              <span className="text-xs text-muted-foreground">7-day forecast · {weather.location}</span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+              {weather.daily.map(day => (
+                <button type="button" key={day.date} aria-pressed={selectedDate === day.date} onClick={() => setSelectedDate(day.date)}
+                  className={cn('min-h-[132px] rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', selectedDate === day.date ? 'border-model bg-model/10' : 'border-border bg-card hover:border-model/40')}>
+                  <span className="block text-xs font-semibold text-muted-foreground">{day.day}</span>
+                  <span className="mt-2 block text-2xl" aria-hidden>{day.icon}</span>
+                  <span className="mt-2 block text-sm font-semibold text-foreground">{day.high}° <span className="font-normal text-muted-foreground">{day.low}°</span></span>
+                  <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><CloudRain className="h-3 w-3 text-model" />{day.rainChance}% · {day.rainMm} mm</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {selectedDay && (
+            <section className="grid gap-4 rounded-2xl border border-border bg-background p-5 md:grid-cols-[1fr_auto] md:items-center md:p-6" aria-live="polite">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Selected forecast · {selectedDay.day}</p>
+                <h3 className="mt-1 font-display text-xl font-semibold text-foreground">{selectedDay.condition}</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{signal?.body}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3 border-t border-border pt-4 text-sm md:border-l md:border-t-0 md:pl-6 md:pt-0">
+                <span className="text-muted-foreground">High / low</span><strong className="text-right font-semibold text-foreground">{selectedDay.high}° / {selectedDay.low}°C</strong>
+                <span className="text-muted-foreground">Rain chance</span><strong className="text-right font-semibold text-foreground">{selectedDay.rainChance}%</strong>
+                <span className="text-muted-foreground">Forecast rain</span><strong className="text-right font-semibold text-foreground">{selectedDay.rainMm} mm</strong>
+                <span className="text-muted-foreground">Reference ET₀</span><strong className="text-right font-semibold text-foreground">{selectedDay.et0Mm == null ? '—' : `${selectedDay.et0Mm} mm`}</strong>
+              </div>
+            </section>
+          )}
+
+          <p className="flex items-start gap-2 border-t border-border pt-4 text-xs leading-5 text-muted-foreground">
+            <ArrowUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-model" />
+            Forecasts are model estimates, not field measurements. ET₀ is a reference measure of atmospheric demand, not a crop-specific irrigation amount. Confirm high-impact decisions with local IMD advisories and field observations.
+          </p>
+        </>
+      ) : null}
+    </div>
   );
 }

@@ -99,7 +99,7 @@ function requireOk(response: Response, label: string) {
   if (!response.ok) throw new Error(`${label} unavailable`);
 }
 
-export async function getWeatherForecast(locationInput: string): Promise<WeatherData> {
+async function loadWeatherForecast(locationInput: string): Promise<WeatherData> {
   const query = locationInput.trim().slice(0, 100);
   if (query.length < 2) throw new Error('Add a town or district in farm settings to view the forecast.');
 
@@ -172,4 +172,22 @@ export async function getWeatherForecast(locationInput: string): Promise<Weather
     },
     daily: dailyItems,
   };
+}
+
+export type WeatherResult = { ok: true; data: WeatherData } | { ok: false; error: string };
+
+/** Returns a result instead of throwing: production Next.js masks thrown server-action messages. */
+export async function getWeatherForecast(locationInput: string): Promise<WeatherResult> {
+  try {
+    return { ok: true, data: await loadWeatherForecast(locationInput) };
+  } catch (cause) {
+    const name = cause instanceof Error ? cause.name : '';
+    const offline = name === 'TypeError' || name === 'TimeoutError' || name === 'AbortError';
+    return {
+      ok: false,
+      error: offline
+        ? 'The forecast service could not be reached. Check your connection and try again.'
+        : cause instanceof Error ? cause.message : 'Weather is unavailable for this location.',
+    };
+  }
 }

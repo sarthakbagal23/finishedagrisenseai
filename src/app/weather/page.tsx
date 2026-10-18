@@ -38,11 +38,16 @@ export default function WeatherForecast() {
     setError(null);
     try {
       const result = await getWeatherForecast(settings.location);
-      setWeather(result);
-      setSelectedDate(result.daily[0]?.date ?? '');
-    } catch (cause) {
+      if (result.ok) {
+        setWeather(result.data);
+        setSelectedDate(result.data.daily[0]?.date ?? '');
+      } else {
+        setWeather(null);
+        setError(result.error);
+      }
+    } catch {
       setWeather(null);
-      setError(cause instanceof Error ? cause.message : 'Weather is unavailable for this location.');
+      setError('The forecast service could not be reached. Check your connection and try again.');
     } finally {
       setLoading(false);
     }

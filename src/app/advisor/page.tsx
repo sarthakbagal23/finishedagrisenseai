@@ -110,11 +110,9 @@ export default function AIAdvisor() {
 
   return (
     <div className="space-y-7 md:space-y-9">
-      <header className="relative overflow-hidden rounded-2xl border border-border bg-card px-5 py-6 md:px-8 md:py-8">
-        <div aria-hidden className="absolute -right-12 -top-20 h-64 w-64 rounded-full border border-model/15" />
-        <div aria-hidden className="absolute -right-1 -top-9 h-44 w-44 rounded-full border border-model/20" />
-        <div className="relative max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-model/25 bg-model/10 px-3 py-1 text-xs font-medium text-model">
+      <header className="border-b border-border pb-6 md:pb-8">
+        <div className="max-w-3xl">
+          <div className="inline-flex items-center gap-2 text-sm font-medium text-model-ink">
             <Sparkles className="h-3.5 w-3.5" /> Groq-powered farm advisor
           </div>
           <h2 className="mt-4 max-w-2xl font-display text-3xl font-semibold leading-tight tracking-tight text-foreground md:text-4xl">
@@ -127,10 +125,10 @@ export default function AIAdvisor() {
       </header>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]">
-        <section aria-label="Farm advisor chat" className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <section aria-label="Farm advisor chat" className="overflow-hidden rounded-md border border-border bg-card ">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 md:px-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-model/10 text-model">
+              <div className="flex h-10 w-10 items-center justify-center text-model-ink">
                 <Bot className="h-5 w-5" />
               </div>
               <div>
@@ -149,8 +147,8 @@ export default function AIAdvisor() {
             {messages.length === 0 ? (
               <div className="flex min-h-[300px] flex-col justify-center">
                 <div className="mb-5 flex items-start gap-3">
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-model/10 text-model"><Bot className="h-4 w-4" /></div>
-                  <div className="max-w-xl rounded-2xl rounded-tl-sm border border-border bg-background px-4 py-3 text-sm leading-6 text-foreground">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center text-model-ink"><Bot className="h-4 w-4" /></div>
+                  <div className="max-w-xl rounded-md rounded-tl-sm border border-border bg-background px-4 py-3 text-sm leading-6 text-foreground">
                     Tell me what you are trying to decide. If timing or treatment depends on local conditions, I will ask before recommending a step.
                   </div>
                 </div>
@@ -170,17 +168,17 @@ export default function AIAdvisor() {
               <div className="space-y-5">
                 {messages.map((message, index) => (
                   <div key={`${index}-${message.role}`} className={cn('flex gap-3', message.role === 'user' && 'flex-row-reverse')}>
-                    <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-model/10 text-model')}>
+                    <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', message.role === 'user' ? 'bg-primary text-primary-foreground' : 'text-model-ink')}>
                       {message.role === 'user' ? <Sprout className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                     </div>
-                    <div className={cn('max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6', message.role === 'user' ? 'rounded-tr-sm bg-primary text-primary-foreground' : 'rounded-tl-sm border border-border bg-background text-foreground')}>
+                    <div className={cn('max-w-[88%] rounded-md px-4 py-3 text-sm leading-6', message.role === 'user' ? 'rounded-tr-sm bg-primary text-primary-foreground' : 'rounded-tl-sm border border-border bg-background text-foreground')}>
                       <p className="whitespace-pre-wrap">{message.content}</p>
                     </div>
                   </div>
                 ))}
                 {loading && (
                   <div className="flex items-center gap-3 text-sm text-muted-foreground" role="status">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-model/10 text-model"><LoaderCircle className="h-4 w-4 animate-spin" /></span>
+                    <span className="flex h-8 w-8 items-center justify-center text-model-ink"><LoaderCircle className="h-4 w-4 animate-spin" /></span>
                     Thinking through the field context…
                   </div>
                 )}
@@ -198,7 +196,7 @@ export default function AIAdvisor() {
 
           <form onSubmit={submit} className="border-t border-border bg-background/70 p-3 md:p-4">
             <label htmlFor="advisor-question" className="sr-only">Ask the farm advisor</label>
-            <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-2 shadow-sm transition-shadow focus-within:ring-2 focus-within:ring-ring/50">
+            <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-2  transition-shadow focus-within:ring-2 focus-within:ring-ring/50">
               <Textarea id="advisor-question" value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={handleComposerKeyDown}
                 maxLength={1_500} rows={2} placeholder="Ask about an observation or a decision…" disabled={loading}
                 className="max-h-32 min-h-11 resize-y border-0 bg-transparent shadow-none focus-visible:ring-0" />
@@ -214,10 +212,10 @@ export default function AIAdvisor() {
         </section>
 
         <aside className="space-y-4">
-          <section className="rounded-2xl border border-border bg-card p-5">
+          <section className="rounded-md border border-border bg-card p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your field brief</p>
+                <p className="text-sm font-medium text-muted-foreground">Your field brief</p>
                 <h3 className="mt-1 font-display text-xl font-semibold text-foreground">Make advice more relevant</h3>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/50 text-foreground"><Sprout className="h-4 w-4" /></div>
@@ -242,7 +240,7 @@ export default function AIAdvisor() {
             <Link href="/settings" className="mt-4 inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-model underline-offset-4 hover:underline">Edit farm profile <ArrowDown className="h-3.5 w-3.5 -rotate-45" /></Link>
           </section>
 
-          <section className="rounded-2xl border border-border bg-card p-5">
+          <section className="rounded-md border border-border bg-card p-5">
             <div className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-model" /><h3 className="font-semibold text-foreground">Trusted field references</h3></div>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">Check local bulletins when timing or treatment depends on current conditions.</p>
             <div className="mt-3 divide-y divide-border">

@@ -92,7 +92,7 @@ export function Navigation() {
         </Link>
 
         <nav className="flex-1 overflow-y-auto px-3 py-5" aria-label="Main navigation">
-          <p className="px-3 pb-2 text-[11px] font-semibold text-muted-foreground">THE PROJECT</p>
+          <p className="px-3 pb-2 text-xs font-medium text-muted-foreground">The project</p>
           <div className="space-y-1">
             {research.map((item) => <NavLink key={item.href} item={item} pathname={pathname} />)}
           </div>

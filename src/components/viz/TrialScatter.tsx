@@ -5,7 +5,7 @@ import data from "@/data/dataset-site.json";
  * Static SVG so it renders instantly on the first screen. Blue marks generated (not observed) data.
  */
 export function TrialScatter({ className }: { className?: string }) {
-  const W = 560, H = 420, L = 52, R = 12, T = 34, B = 52;
+  const W = 560, H = 420, L = 52, R = 12, T = 34, B = 68;
   const x = (v: number) => L + ((v - 5) / (70 - 5)) * (W - L - R);
   const y = (v: number) => H - B - ((v - 2) / (14 - 2)) * (H - T - B);
   const xt = [10, 30, 50, 70];
@@ -20,7 +20,7 @@ export function TrialScatter({ className }: { className?: string }) {
       ))}
       {xt.map((t) => <text key={t} x={x(t)} y={H - B + 24} textAnchor="middle" fontSize={17} fill="hsl(var(--muted-foreground))" className="num">{t}</text>)}
       {yt.map((t) => <text key={t} x={L - 10} y={y(t) + 6} textAnchor="end" fontSize={17} fill="hsl(var(--muted-foreground))" className="num">{t}</text>)}
-      <text x={(L + W - R) / 2} y={H - 10} textAnchor="middle" fontSize={17} fill="hsl(var(--foreground))">Soil rigidity (kPa)</text>
+      <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fontSize={17} fill="hsl(var(--foreground))">Soil rigidity (kPa)</text>
       <text x={L} y={14} fontSize={17} fill="hsl(var(--foreground))">Root elongation (mm/day)</text>
     </svg>
   );

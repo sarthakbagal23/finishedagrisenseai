@@ -45,7 +45,7 @@ export function DatasetExplorer() {
 
   return <section aria-labelledby="explorer">
     <div className="flex flex-col gap-4 border-y border-foreground py-5 md:flex-row md:items-end md:justify-between">
-      <div><p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Interactive data explorer</p><h3 id="explorer" className="font-display text-2xl font-bold mt-1">Browse all 1,000 trials</h3><p className="text-sm text-muted-foreground mt-1">Filter by simulated hydrogel tier, search values, or sort a column.</p></div>
+      <div><p className="text-sm font-medium text-muted-foreground">Interactive data explorer</p><h3 id="explorer" className="font-display text-2xl font-bold mt-1">Browse all 1,000 trials</h3><p className="text-sm text-muted-foreground mt-1">Filter by simulated hydrogel tier, search values, or sort a column.</p></div>
       <a href="/data/agrisense_synthetic_trials.csv" download className="inline-flex min-h-11 items-center justify-center border border-foreground px-4 text-sm font-semibold hover:bg-foreground hover:text-background transition-colors">Download all rows</a>
     </div>
     <div className="grid gap-3 py-4 sm:grid-cols-3">

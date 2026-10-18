@@ -28,8 +28,8 @@ export function StatusStrip() {
   const items = BY_ROUTE[path];
   if (!items) return null;
   return (
-    <div className="border-b border-border bg-muted/50">
-      <div className="max-w-6xl mx-auto px-4 md:px-8 min-h-9 py-1.5 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">
+    <div className="border-b border-border bg-muted/35" aria-label="Data provenance">
+      <div className="min-h-10 px-4 sm:px-6 md:px-8 py-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">
         {items.map(([label, kind]) => {
           const k = KIND[kind];
           return (
@@ -39,7 +39,7 @@ export function StatusStrip() {
             </span>
           );
         })}
-        <Link href="/methods" className="ml-auto underline underline-offset-2 text-muted-foreground hover:text-foreground">Limitations and sources</Link>
+        <Link href="/methods" className="ml-auto underline underline-offset-2 text-muted-foreground hover:text-foreground">How data is made</Link>
       </div>
     </div>
   );

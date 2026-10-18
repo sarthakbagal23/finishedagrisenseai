@@ -65,14 +65,35 @@
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     font-feature-settings: 'tnum' 1;
+    min-width: 320px;
   }
   :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 2px; }
+  :where(a, button, input, textarea, select) { touch-action: manipulation; }
+  :where(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 5rem; text-wrap: balance; }
 }
 
 .font-display { font-family: 'Bricolage Grotesque Variable', 'Public Sans Variable', system-ui, sans-serif; letter-spacing: -0.02em; }
 .font-body { font-family: 'Public Sans Variable', system-ui, sans-serif; }
 .font-mono { font-family: 'Public Sans Variable', system-ui, sans-serif; font-variant-numeric: tabular-nums; }
 .num { font-variant-numeric: tabular-nums lining-nums; }
+
+.skip-link {
+  position: fixed;
+  top: .75rem;
+  left: .75rem;
+  z-index: 100;
+  transform: translateY(-180%);
+  border-radius: .25rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: .75rem 1rem;
+  font-size: .875rem;
+  font-weight: 600;
+  transition: transform 150ms var(--ease);
+}
+.skip-link:focus { transform: translateY(0); }
+
+::selection { background: hsl(var(--accent) / .2); color: hsl(var(--foreground)); }
 
 /* Legacy surface helpers, flattened so unrebuilt pages match the new system */
 .glass-card { @apply bg-card border border-border rounded-lg; }
@@ -104,6 +125,10 @@
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+
+@media (max-width: 640px) {
+  input, textarea, select { font-size: 16px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }

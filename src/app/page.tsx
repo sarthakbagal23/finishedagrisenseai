@@ -1,127 +1,118 @@
 import Link from "next/link";
-import { ArrowRight, Download } from "lucide-react";
+import { ArrowRight, Download, ExternalLink, FlaskConical } from "lucide-react";
 import { TrialScatter } from "@/components/viz/TrialScatter";
 import data from "@/data/dataset-site.json";
 
-const PARTS = [
+const METRICS = [
+  { label: "Trials generated", value: data.n.toLocaleString(), detail: "formula-generated" },
+  { label: "Dataset columns", value: "6", detail: "units and ranges documented" },
+  { label: "Missing values", value: "0", detail: "0 duplicate trial IDs" },
+  { label: "Random seed", value: "20261009", detail: "same result on every run" },
+];
+
+const STEPS = [
   {
-    n: "01",
-    title: "Understand the problem",
-    body: "When soil dries out it can harden, and hard soil is harder for roots to push through. Our research question is whether that mechanism, and a hydrogel soil amendment, show up in a dataset built to explore it.",
-    href: "/methods",
-    cta: "Scope and limits",
-  },
-  {
-    n: "02",
-    title: "Explore the research",
-    body: "A 1,000-trial synthetic dataset you can download, with every column defined, the generation record, the quality checks and three charts that each say what they can and cannot show.",
+    title: "Start with the dataset",
+    body: "See the six variables, how the 1,000 rows were generated, and which quality checks they pass.",
     href: "/dataset",
-    cta: "Explore the dataset",
+    link: "Inspect the data",
   },
   {
-    n: "03",
-    title: "Connect it to real life",
-    body: "Our data is simulated, so it cannot tell a farmer what to do. For decisions today the site points to India Meteorological Department agromet advisories and the ICAR Krishi Vigyan Kendra network.",
-    href: "/resources",
-    cta: "Farmer resources",
+    title: "Read the patterns",
+    body: "Compare soil rigidity, root elongation and rainfall. Every chart distinguishes a designed pattern from a real-world finding.",
+    href: "/findings",
+    link: "View the findings",
+  },
+  {
+    title: "Try the model",
+    body: "Change the scenario inputs and see the prediction band move. Values outside the training range are called out.",
+    href: "/research",
+    link: "Open the Research Lab",
   },
 ];
 
 export default function Story() {
   return (
-    <div className="space-y-16 md:space-y-20 pb-8">
-      <section className="grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 items-start" aria-labelledby="title">
-        <div>
-          <p className="text-sm text-muted-foreground">TSA Data Science and Analytics 2026–27 · climate and environmental sustainability</p>
-          <h2 id="title" className="font-display text-[2.6rem] leading-[1.02] md:text-6xl font-bold mt-4 text-balance">
-            From climate data to farmer resources.
-          </h2>
-          <p className="mt-5 text-lg text-muted-foreground max-w-xl">
-            A research project on drought-related soil hardening and root growth, with a plain line drawn between what a simulation can show and where farmers can get trusted help today.
+    <div className="space-y-14 pb-8 md:space-y-20">
+      <section className="grid items-center gap-8 lg:grid-cols-[1.04fr_0.96fr] lg:gap-12" aria-labelledby="project-title">
+        <div className="max-w-[620px]">
+          <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="h-2 w-2 rounded-full bg-observed" aria-hidden />
+            Climate &amp; environmental sustainability · 2026–27
           </p>
-          <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <Link href="/dataset" className="inline-flex items-center gap-2 min-h-12 px-5 bg-primary text-primary-foreground rounded-md font-semibold transition-colors duration-100 hover:opacity-90">
-              Explore the dataset <ArrowRight className="w-4 h-4" aria-hidden />
+          <h2 id="project-title" className="mt-5 max-w-[16ch] font-display text-[2.65rem] font-bold leading-[0.99] tracking-[-0.04em] text-balance sm:text-5xl lg:text-[3.35rem] 2xl:text-[4rem]">
+            What happens to roots as soil dries and hardens?
+          </h2>
+          <p className="mt-5 max-w-[56ch] text-[16px] leading-7 text-muted-foreground sm:text-[17px]">
+            A 1,000-row simulation of soil, rainfall and roots. No plants were measured.
+          </p>
+          <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <Link href="/dataset" className="inline-flex min-h-12 items-center gap-2 rounded-sm bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
+              Explore the dataset <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
-            <a href="/data/agrisense_synthetic_trials.csv" download className="inline-flex items-center gap-2 min-h-12 font-semibold underline underline-offset-4">
-              <Download className="w-4 h-4" aria-hidden /> Download dataset (CSV)
-            </a>
           </div>
         </div>
 
-        <figure>
-          <TrialScatter className="w-full h-auto" />
-          <figcaption className="mt-2 text-sm text-muted-foreground max-w-md">
-            <strong className="text-foreground">Each dot is one of {data.n.toLocaleString()} synthetic trials.</strong> Harder soil goes with slower roots (r = {data.r_rigidity_root.toString().replace("-", "−")}) because we wrote that relationship into the generator. It is a starting question, not a finding about real plants.
+        <figure className="min-w-0 border-y border-border py-3 lg:py-5">
+          <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-2"><FlaskConical className="h-3.5 w-3.5 text-model-ink" aria-hidden /> Generated relationship</span>
+            <span className="num">n = {data.n.toLocaleString()}</span>
+          </div>
+          <TrialScatter className="h-auto max-h-[230px] w-full sm:max-h-none" />
+          <figcaption className="mt-1 max-w-[66ch] text-[13px] leading-5 text-muted-foreground">
+            In the generated data, root elongation falls as rigidity rises (r = {data.r_rigidity_root.toString().replace("-", "−")}). That pattern is built in, not measured.
           </figcaption>
         </figure>
       </section>
 
-      <section aria-label="Dataset at a glance">
-        <dl className="grid grid-cols-2 md:grid-cols-4 border-y border-foreground divide-x divide-border">
-          {[
-            ["Trials", "1,000", "synthetic rows"],
-            ["Columns", "6", "each defined and unit-labelled"],
-            ["Missing values", "0", "plus 0 duplicate IDs"],
-            ["Generated", "9 Oct 2026", "fixed seed 20261009"],
-          ].map(([k, v, n]) => (
-            <div key={k} className="px-4 py-5 first:pl-0">
-              <dt className="text-sm text-muted-foreground">{k}</dt>
-              <dd className="font-display text-3xl md:text-4xl font-bold num mt-1">{v}</dd>
-              <dd className="text-sm text-muted-foreground mt-0.5">{n}</dd>
+      <section aria-label="Dataset quality at a glance" className="border-y border-border">
+        <dl className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0">
+          {METRICS.map((metric, index) => (
+            <div key={metric.label} className={`min-w-0 px-4 py-4 sm:px-5 sm:py-5 ${index % 2 === 0 ? "pl-0 sm:pl-5" : ""} ${index === 0 ? "sm:pl-0" : ""}`}>
+              <dt className="text-xs text-muted-foreground">{metric.label}</dt>
+              <dd className="mt-1 font-display text-[1.7rem] font-bold leading-tight tracking-[-0.03em] num sm:text-3xl">{metric.value}</dd>
+              <dd className="mt-1 text-xs leading-5 text-muted-foreground">{metric.detail}</dd>
             </div>
           ))}
         </dl>
       </section>
 
-      <section aria-labelledby="path">
-        <h3 id="path" className="sr-only">Three parts of the project</h3>
-        <ol className="divide-y divide-border border-b border-border">
-          {PARTS.map((p) => (
-            <li key={p.n} className="grid gap-x-8 gap-y-2 py-7 md:grid-cols-[88px_minmax(0,1fr)_200px] items-baseline">
-              <span className="font-display text-4xl md:text-5xl font-bold text-muted-foreground num" aria-hidden>{p.n}</span>
+      <section aria-labelledby="explore-title" className="grid gap-7 lg:grid-cols-[minmax(200px,0.7fr)_1.3fr] lg:gap-12">
+        <div>
+          <h3 id="explore-title" className="max-w-[14ch] font-display text-2xl font-bold leading-tight tracking-[-0.025em] sm:text-3xl">Follow the question from data to limits.</h3>
+          <p className="mt-3 max-w-[36ch] text-sm leading-6 text-muted-foreground">Each step shows what the simulation can tell us, then where it stops.</p>
+          <a href="/data/agrisense_synthetic_trials.csv" download className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold underline decoration-border underline-offset-4 hover:decoration-foreground">
+            <Download className="h-4 w-4" aria-hidden /> Download all 1,000 rows
+          </a>
+        </div>
+        <ol className="divide-y divide-border border-t border-border">
+          {STEPS.map((step, index) => (
+            <li key={step.href} className="grid items-start gap-x-5 gap-y-2 py-5 sm:grid-cols-[34px_minmax(0,1fr)_auto] sm:items-center">
+              <span className="font-display text-lg font-semibold text-muted-foreground num" aria-hidden>{String(index + 1).padStart(2, "0")}</span>
               <div>
-                <h4 className="font-display text-xl md:text-2xl font-bold">{p.title}</h4>
-                <p className="mt-2 text-[15px] text-muted-foreground max-w-2xl">{p.body}</p>
+                <h4 className="font-display text-lg font-semibold">{step.title}</h4>
+                <p className="mt-1 max-w-[62ch] text-sm leading-6 text-muted-foreground">{step.body}</p>
               </div>
-              <Link href={p.href} className="inline-flex items-center gap-2 min-h-11 font-semibold underline underline-offset-4 md:justify-self-end">
-                {p.cta} <ArrowRight className="w-4 h-4" aria-hidden />
+              <Link href={step.href} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold underline decoration-border underline-offset-4 hover:decoration-foreground sm:justify-self-end">
+                {step.link} <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             </li>
           ))}
         </ol>
       </section>
 
-      <section aria-labelledby="pattern" className="grid gap-8 lg:grid-cols-[320px_1fr]">
+      <section className="grid gap-8 border-t border-border pt-7 lg:grid-cols-[0.7fr_1.3fr] lg:gap-12" aria-labelledby="boundary-title">
         <div>
-          <h3 id="pattern" className="font-display text-2xl font-bold">How every result is framed</h3>
-          <p className="mt-2 text-[15px] text-muted-foreground">Four steps, in this order, so a simulated pattern is never mistaken for advice.</p>
+          <p className="text-xs font-semibold text-warn">A clear boundary</p>
+          <h3 id="boundary-title" className="mt-2 max-w-[16ch] font-display text-2xl font-bold leading-tight tracking-[-0.025em]">A simulation cannot guide a real farm decision.</h3>
         </div>
-        <ol className="grid gap-px bg-border border border-border sm:grid-cols-2">
-          {[
-            ["Simulated finding", "In our dataset, root elongation falls as soil rigidity rises."],
-            ["What it might suggest", "Compacted, dry soil is a plausible barrier to root growth, which is worth testing."],
-            ["What we still need to verify", "Real soil measurements, real roots, real rainfall. None of that is in this dataset."],
-            ["Trusted resource today", "Your district's IMD agromet bulletin and local Krishi Vigyan Kendra."],
-          ].map(([t, b], i) => (
-            <li key={t} className="bg-background p-5">
-              <p className="text-sm text-muted-foreground num">Step {i + 1}</p>
-              <p className="font-display text-lg font-bold mt-0.5">{t}</p>
-              <p className="text-[15px] text-muted-foreground mt-1">{b}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="border-l-2 border-warn pl-5 max-w-3xl" aria-labelledby="claims">
-        <h3 id="claims" className="font-display text-xl font-bold">What this site does not claim</h3>
-        <ul className="mt-2 space-y-1.5 text-[15px] text-muted-foreground list-disc pl-5">
-          <li>That hydrogel improves real crops or that there is an optimal dose.</li>
-          <li>That the EXPA1-like column is measured gene expression. It is a made-up proxy.</li>
-          <li>That the rainfall values are Indian climate data. They are a generated scenario.</li>
-          <li>That any model here can advise a farmer.</li>
-        </ul>
-        <p className="mt-3 text-sm"><Link href="/methods" className="underline underline-offset-4 font-semibold">Read the full limitations and sources</Link></p>
+        <div className="max-w-[70ch]">
+          <p className="text-[15px] leading-7 text-muted-foreground">The 1,000 rows are formula-generated. Rainfall is a scenario, and the EXPA1-like value is a made-up response proxy, not a gene-expression measurement. The study makes no claim that hydrogel improves crops or that a dose is optimal.</p>
+          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+            <Link href="/methods" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold underline decoration-border underline-offset-4 hover:decoration-foreground">Read all limits and sources <ArrowRight className="h-4 w-4" aria-hidden /></Link>
+            <Link href="/resources" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold underline decoration-border underline-offset-4 hover:decoration-foreground">Find trusted farmer resources <ExternalLink className="h-4 w-4" aria-hidden /></Link>
+          </div>
+        </div>
       </section>
     </div>
   );
